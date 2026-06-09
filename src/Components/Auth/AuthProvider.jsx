@@ -18,25 +18,32 @@ const AuthProvider = ({ children }) => {
 
   const googleProvider = new GoogleAuthProvider();
 
-  const createUser = async (email, password, name, photoURL) => {
+  // Register User
+  const createUser = async (
+    email,
+    password,
+    name,
+    photoURL = ""
+  ) => {
     setLoading(true);
 
     try {
-      const result = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password,
-      );
+      const result =
+        await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
 
-      const generatedPhoto =
+      const avatar =
         photoURL ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(
-          name,
-        )}&background=random`;
+          name
+        )}&background=random&size=256`;
 
       await updateProfile(result.user, {
         displayName: name,
-        photoURL: generatedPhoto,
+        photoURL: avatar,
       });
 
       await result.user.reload();
@@ -44,34 +51,44 @@ const AuthProvider = ({ children }) => {
       setUser(auth.currentUser);
 
       return result;
+    } catch (error) {
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
+  // Login
   const signInUser = (email, password) => {
     setLoading(true);
-
-    return signInWithEmailAndPassword(auth, email, password);
+    return signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
   };
 
+  // Google Login
   const signInWithGoogle = () => {
     setLoading(true);
-
-    return signInWithPopup(auth, googleProvider);
+    return signInWithPopup(
+      auth,
+      googleProvider
+    );
   };
 
+  // Logout
   const logOutUser = () => {
     setLoading(true);
-
     return signOut(auth);
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
+    const unsubscribe =
+      onAuthStateChanged(auth, (currentUser) => {
+        setUser(currentUser);
+        setLoading(false);
+      });
 
     return () => unsubscribe();
   }, []);
@@ -86,7 +103,9 @@ const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={authInfo}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={authInfo}>
+      {children}
+    </AuthContext.Provider>
   );
 };
 

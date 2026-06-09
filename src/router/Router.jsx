@@ -16,11 +16,15 @@ import PrivacyPolicy from "../Components/pages/PrivacyPolicy";
 import AllBrands from "../Components/pages/AllBrands";
 import AccessoriesDetails from "../Components/Home/AccessoriesDetails";
 import Accessories from "../Components/Home/Accessories";
+import Contact from "../Components/Home/Contact";
+import Blog from "../Components/Home/Blog";
+import ErrorPage from "../Components/pages/ErrorPage";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <LayOut />,
+    errorElement:<ErrorPage></ErrorPage>,
     children: [
       {
         index: true,
@@ -30,10 +34,7 @@ const router = createBrowserRouter([
         path: "/AllBrands",
         element: <AllBrands></AllBrands>,
       },
-      {
-        path: "/phone/:slug",
-        element: <PhoneDetails></PhoneDetails>,
-      },
+
       {
         path: "Terms&Conditions",
         element: <TermsConditions></TermsConditions>,
@@ -43,13 +44,26 @@ const router = createBrowserRouter([
         element: <PrivacyPolicy></PrivacyPolicy>,
       },
       {
+        path: "Contact",
+        element: <Contact></Contact>,
+      },
+      {
+        path: "blog",
+        element: <Blog></Blog>,
+      },
+      {
+        path: "accessories",
+        element: <Accessories></Accessories>,
+      },
+      {
         path: "/accessories/:id",
         element: <AccessoriesDetails></AccessoriesDetails>,
       },
       {
-path: "accessories",
-element:<Accessories></Accessories>,
+        path: "/phone/:slug",
+        element: <PhoneDetails></PhoneDetails>,
       },
+
       {
         path: "login",
         element: <Login></Login>,

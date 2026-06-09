@@ -96,7 +96,7 @@ const Banner = () => {
                 </div>
 
                 <Link
-                  to="/shop"
+                  to="/AllBrands"
                   className="btn btn-primary px-6 py-3 text-lg flex items-center gap-2"
                 >
                   <FaShoppingCart />
