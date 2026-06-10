@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import flashProducts from "../../data/flashSaleData.json";
 
 import {
@@ -6,8 +7,8 @@ import {
   FaShoppingCart,
   FaHeart,
   FaStar,
-  FaFire,
   FaArrowRight,
+  FaFire,
 } from "react-icons/fa";
 
 const FlashSale = () => {
@@ -106,11 +107,15 @@ const FlashSale = () => {
               >
                 {/* Image */}
                 <figure className="relative overflow-hidden">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="h-72 w-full object-cover hover:scale-105 transition duration-500"
-                  />
+                
+
+                  <Link to={`/flash-sale/${product.id}`}>
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="h-72 w-full object-cover hover:scale-105 transition duration-500"
+                    />
+                  </Link>
 
                   <div className="absolute top-4 left-4 badge badge-error text-white font-bold">
                     -{product.discount}%
@@ -163,6 +168,13 @@ const FlashSale = () => {
                     <button className="btn btn-outline">
                       <FaArrowRight />
                     </button>
+
+                    <Link
+                      to={`/flash-sale/${product.id}`}
+                      className="btn btn-outline"
+                    >
+                      <FaArrowRight />
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -171,12 +183,12 @@ const FlashSale = () => {
         </div>
 
         {/* View All */}
-        <div className="text-center mt-12">
-          <button className="btn btn-primary btn-lg">
+        {/* <div className="text-center mt-12">
+          <Link to="/flash-sale" className="btn btn-primary btn-lg">
             View All Flash Deals
             <FaArrowRight />
-          </button>
-        </div>
+          </Link>
+        </div> */}
       </div>
     </section>
   );

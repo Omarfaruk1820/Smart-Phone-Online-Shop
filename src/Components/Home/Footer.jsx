@@ -65,7 +65,7 @@ const Footer = () => {
             <div className="space-y-3 mt-6">
               <div className="flex items-center gap-3">
                 <FaPhoneAlt />
-                <span>+880 182237989</span>
+                <span>+880 1822637989</span>
               </div>
 
               <div className="flex items-center gap-3">
@@ -85,7 +85,7 @@ const Footer = () => {
             <h3 className="footer-title">Shop</h3>
 
             <div className="flex flex-col gap-3">
-              <Link to="/all-products" className="link link-hover">
+              <Link to="/AllBrands" className="link link-hover">
                 All Smartphones
               </Link>
 
@@ -147,11 +147,11 @@ const Footer = () => {
                 FAQ
               </Link>
 
-              <Link to="/shipping" className="link link-hover">
+              <Link to="/Shipping-Policy" className="link link-hover">
                 Shipping Policy
               </Link>
 
-              <Link to="/returns" className="link link-hover">
+              <Link to="/Return-Policy" className="link link-hover">
                 Return Policy
               </Link>
 
@@ -241,7 +241,7 @@ const Footer = () => {
         <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-neutral-content/70 text-center">
-              © {currentYear} MobileHub. All Rights Reserved.
+              © {currentYear} Omar Faruk. All Rights Reserved.
             </p>
 
             <div className="flex flex-wrap justify-center gap-4 text-sm">

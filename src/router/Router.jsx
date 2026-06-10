@@ -19,12 +19,17 @@ import Accessories from "../Components/Home/Accessories";
 import Contact from "../Components/Home/Contact";
 import Blog from "../Components/Home/Blog";
 import ErrorPage from "../Components/pages/ErrorPage";
+import FlashSaleDetails from "../Components/pages/FlashSaleDetails";
+import FlashSale from "../Components/pages/FlashSale";
+import Faq from "../Components/Home/Faq";
+import ShippingPolicy from "../Components/Home/ShippingPolicy";
+import ReturnPolicy from "../Components/Home/ReturnPolicy";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <LayOut />,
-    errorElement:<ErrorPage></ErrorPage>,
+    errorElement: <ErrorPage></ErrorPage>,
     children: [
       {
         index: true,
@@ -62,6 +67,27 @@ const router = createBrowserRouter([
       {
         path: "/phone/:slug",
         element: <PhoneDetails></PhoneDetails>,
+      },
+
+      {
+        path: "/flash-sale/:id",
+        element: <FlashSaleDetails />,
+      },
+      {
+        path: "/flash-sale",
+        element: <FlashSale></FlashSale>,
+      },
+      {
+        path: "faq",
+        element: <Faq></Faq>,
+      },
+      {
+        path: "/Shipping-Policy",
+        element: <ShippingPolicy></ShippingPolicy>,
+      },
+      {
+        path: "Return-Policy",
+        element: <ReturnPolicy></ReturnPolicy>,
       },
 
       {
