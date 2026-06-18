@@ -24,6 +24,10 @@ import FlashSale from "../Components/pages/FlashSale";
 import Faq from "../Components/Home/Faq";
 import ShippingPolicy from "../Components/Home/ShippingPolicy";
 import ReturnPolicy from "../Components/Home/ReturnPolicy";
+import AddProduct from "../Components/Admin/AddProduct";
+import AdminRoute from "../Components/Admin/AdminRoute";
+import AllUsers from "../Components/Admin/AllUsers";
+import AddToCart from "../Components/Shared/AddToCart";
 
 const router = createBrowserRouter([
   {
@@ -36,7 +40,7 @@ const router = createBrowserRouter([
         element: <Home />,
       },
       {
-        path: "/AllBrands",
+        path: "/phones",
         element: <AllBrands></AllBrands>,
       },
 
@@ -61,7 +65,7 @@ const router = createBrowserRouter([
         element: <Accessories></Accessories>,
       },
       {
-        path: "/accessories/:id",
+        path: "/accessories/:slug",
         element: <AccessoriesDetails></AccessoriesDetails>,
       },
       {
@@ -98,6 +102,10 @@ const router = createBrowserRouter([
         path: "register",
         element: <Register></Register>,
       },
+      {
+        path: "/cart",
+        element: <AddToCart></AddToCart>,
+      },
     ],
   },
 
@@ -111,7 +119,16 @@ const router = createBrowserRouter([
     children: [
       {
         path: "admin",
-        element: <AdminDashboard />,
+        element: (
+          <AdminRoute>
+            {" "}
+            <AdminDashboard />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "all-users",
+        element: <AllUsers></AllUsers>,
       },
 
       {
@@ -127,6 +144,10 @@ const router = createBrowserRouter([
       {
         path: "my-orders",
         element: <MyOrders />,
+      },
+      {
+        path: "AddProduct",
+        element: <AddProduct></AddProduct>,
       },
     ],
   },

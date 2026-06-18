@@ -1,194 +1,248 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import flashProducts from "../../data/flashSaleData.json";
+import axios from "axios";
 
 import {
-  FaBolt,
+  FaSearch,
   FaShoppingCart,
   FaHeart,
   FaStar,
   FaArrowRight,
-  FaFire,
+  FaBolt,
 } from "react-icons/fa";
 
 const FlashSale = () => {
-  const targetDate = new Date();
-  targetDate.setHours(targetDate.getHours() + 48);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const calculateTimeLeft = () => {
-    const difference = targetDate - new Date();
+  const [search, setSearch] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("All");
+  const [sortBy, setSortBy] = useState("featured");
 
-    if (difference <= 0) {
-      return {
-        days: "00",
-        hours: "00",
-        minutes: "00",
-        seconds: "00",
-      };
-    }
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-    return {
-      days: String(Math.floor(difference / (1000 * 60 * 60 * 24))).padStart(
-        2,
-        "0",
-      ),
-      hours: String(Math.floor((difference / (1000 * 60 * 60)) % 24)).padStart(
-        2,
-        "0",
-      ),
-      minutes: String(Math.floor((difference / (1000 * 60)) % 60)).padStart(
-        2,
-        "0",
-      ),
-      seconds: String(Math.floor((difference / 1000) % 60)).padStart(2, "0"),
+  const [wishlist, setWishlist] = useState([]);
+  const [cart, setCart] = useState([]);
+
+  const limit = 8;
+
+  // API FETCH (IMPORTANT FIX)
+  useEffect(() => {
+    const fetchFlashSale = async () => {
+      try {
+        setLoading(true);
+
+        const res = await axios.get(
+          `http://localhost:5000/phones/flash-sale?page=${currentPage}&limit=${limit}`,
+        );
+
+        setProducts(res.data.flashSaleProducts || []);
+        setTotalPages(res.data.totalPages || 1);
+      } catch (error) {
+        console.log(error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
     };
+
+    fetchFlashSale();
+  }, [currentPage]);
+
+  // BRAND LIST
+  const brands = useMemo(() => {
+    return ["All", ...new Set(products.map((item) => item.brand))];
+  }, [products]);
+
+  // WISHLIST
+  const handleWishlist = (id) => {
+    setWishlist((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
   };
 
-  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
+  // CART
+  const handleAddCart = (product) => {
+    setCart((prev) => {
+      const exists = prev.find((p) => p._id === product._id);
+      if (exists) return prev;
+      return [...prev, product];
+    });
+  };
+  // FILTER + SORT
+  const filteredProducts = useMemo(() => {
+    let items = [...products];
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 1000);
+    if (search) {
+      items = items.filter(
+        (p) =>
+          p.name.toLowerCase().includes(search.toLowerCase()) ||
+          p.brand.toLowerCase().includes(search.toLowerCase()),
+      );
+    }
 
-    return () => clearInterval(timer);
-  }, []);
+    if (selectedBrand !== "All") {
+      items = items.filter((p) => p.brand === selectedBrand);
+    }
+
+    switch (sortBy) {
+      case "low":
+        items.sort((a, b) => a.discountPrice - b.discountPrice);
+        break;
+
+      case "high":
+        items.sort((a, b) => b.discountPrice - a.discountPrice);
+        break;
+
+      case "rating":
+        items.sort((a, b) => b.rating - a.rating);
+        break;
+
+      case "new":
+        items.sort((a, b) => Number(b.newArrival) - Number(a.newArrival));
+        break;
+
+      default:
+        break;
+    }
+
+    return items;
+  }, [products, search, selectedBrand, sortBy]);
+
+  // LOADING
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <span className="loading loading-spinner text-warning"></span>
+      </div>
+    );
+  }
 
   return (
-    <section className="py-16 bg-base-100">
-      <div className="max-w-7xl mx-auto px-4 lg:px-6">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-center gap-8 mb-12">
-          <div>
-            <div className="badge badge-error gap-2 px-4 py-4 text-white mb-4">
-              <FaFire />
-              Live Flash Sale
-            </div>
+    <section className="bg-base-200 py-16">
+      <div className="max-w-7xl mx-auto px-4">
+        {/* HEADER */}
+        <div className="mb-10">
+          <h2 className="text-4xl font-bold flex items-center gap-2">
+            <FaBolt className="text-warning" />
+            Flash Sale Deals
+          </h2>
 
-            <h2 className="text-4xl font-bold mb-3 flex items-center gap-3">
-              <FaBolt className="text-warning" />
-              Flash Sale Deals
-            </h2>
-
-            <p className="text-base-content/70 max-w-xl">
-              Grab the hottest smartphone deals before the timer runs out.
-              Limited stock available.
-            </p>
-          </div>
-
-          {/* Countdown */}
-          <div className="flex gap-3">
-            {[
-              { label: "Days", value: timeLeft.days },
-              { label: "Hours", value: timeLeft.hours },
-              { label: "Min", value: timeLeft.minutes },
-              { label: "Sec", value: timeLeft.seconds },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="bg-error text-white rounded-xl p-4 min-w-[75px] text-center shadow-lg"
-              >
-                <div className="text-2xl font-bold">{item.value}</div>
-                <div className="text-xs uppercase">{item.label}</div>
-              </div>
-            ))}
-          </div>
+          <p className="text-gray-500 mt-2">
+            Limited time premium smartphone offers
+          </p>
         </div>
 
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-          {flashProducts.map((product) => {
-            const stockPercentage = (product.sold / product.stock) * 100;
+        {/* SEARCH + FILTER */}
+        <div className="grid md:grid-cols-3 gap-4 mb-6">
+          <input
+            type="text"
+            placeholder="Search products..."
+            className="input input-bordered"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
 
-            return (
+          <select
+            className="select select-bordered"
+            value={selectedBrand}
+            onChange={(e) => setSelectedBrand(e.target.value)}
+          >
+            {brands.map((b) => (
+              <option key={b}>{b}</option>
+            ))}
+          </select>
+
+          <select
+            className="select select-bordered"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="featured">Featured</option>
+            <option value="low">Low → High</option>
+            <option value="high">High → Low</option>
+            <option value="rating">Rating</option>
+            <option value="new">Newest</option>
+          </select>
+        </div>
+
+        {/* EMPTY STATE */}
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-20">
+            <h3 className="text-2xl font-bold">No Flash Sale Products Found</h3>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
               <div
-                key={product.id}
-                className="card bg-base-100 border border-base-300 shadow-lg hover:shadow-2xl transition-all duration-300"
+                key={product._id}
+                className="card bg-base-100 shadow-xl hover:shadow-2xl transition"
               >
-                {/* Image */}
-                <figure className="relative overflow-hidden">
-                
-
-                  <Link to={`/flash-sale/${product.id}`}>
+                <figure className="relative">
+                  <Link to={`/flash-sale/${product._id}`}>
                     <img
                       src={product.image}
-                      alt={product.name}
-                      className="h-72 w-full object-cover hover:scale-105 transition duration-500"
+                      className="h-64 object-contain p-5"
                     />
                   </Link>
 
-                  <div className="absolute top-4 left-4 badge badge-error text-white font-bold">
-                    -{product.discount}%
+                  <div className="badge badge-error absolute top-4 left-4">
+                    -{product.discountPercentage}%
                   </div>
 
-                  <button className="absolute top-4 right-4 btn btn-circle btn-sm bg-white border-none text-error">
-                    <FaHeart />
+                  <button
+                    onClick={() => handleWishlist(product._id)}
+                    className="btn btn-circle btn-sm absolute top-4 right-4"
+                  >
+                    <FaHeart
+                      className={
+                        wishlist.includes(product._id) ? "text-red-500" : ""
+                      }
+                    />
                   </button>
                 </figure>
 
-                {/* Body */}
                 <div className="card-body">
-                  <div className="flex items-center gap-2 text-warning">
-                    <FaStar />
-                    <span>{product.rating}</span>
-                  </div>
+                  <h2 className="font-bold">{product.name}</h2>
 
-                  <h3 className="card-title text-lg">{product.name}</h3>
-
-                  <div className="flex items-center gap-3">
-                    <span className="text-primary text-2xl font-bold">
-                      ৳{product.price.toLocaleString()}
+                  <div className="flex gap-2">
+                    <span className="text-primary font-bold">
+                      ৳{product.discountPrice}
                     </span>
 
                     <span className="line-through text-gray-400">
-                      ৳{product.oldPrice.toLocaleString()}
+                      ৳{product.price}
                     </span>
                   </div>
 
-                  {/* Stock */}
-                  <div className="mt-3">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Sold: {product.sold}</span>
-                      <span>Stock: {product.stock}</span>
-                    </div>
-
-                    <progress
-                      className="progress progress-error w-full"
-                      value={stockPercentage}
-                      max="100"
-                    ></progress>
-                  </div>
-
-                  <div className="card-actions mt-4">
-                    <button className="btn btn-primary flex-1">
-                      <FaShoppingCart />
-                      Add To Cart
-                    </button>
-
-                    <button className="btn btn-outline">
-                      <FaArrowRight />
-                    </button>
-
-                    <Link
-                      to={`/flash-sale/${product.id}`}
-                      className="btn btn-outline"
-                    >
-                      <FaArrowRight />
-                    </Link>
-                  </div>
+                  <button
+                    onClick={() => handleAddCart(product)}
+                    className="btn btn-primary mt-3"
+                  >
+                    <FaShoppingCart />
+                    Add To Cart
+                  </button>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {/* View All */}
-        {/* <div className="text-center mt-12">
-          <Link to="/flash-sale" className="btn btn-primary btn-lg">
-            View All Flash Deals
-            <FaArrowRight />
-          </Link>
-        </div> */}
+        {/* PAGINATION */}
+        <div className="flex justify-center gap-2 mt-10">
+          {[...Array(totalPages).keys()].map((p) => (
+            <button
+              key={p}
+              className={`btn btn-sm ${
+                currentPage === p + 1 ? "btn-primary" : "btn-outline"
+              }`}
+              onClick={() => setCurrentPage(p + 1)}
+            >
+              {p + 1}
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );

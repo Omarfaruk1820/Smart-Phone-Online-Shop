@@ -1,369 +1,268 @@
-import { useMemo } from "react";
-import { Link, useParams } from "react-router-dom";
-import phones from "../../data/phones.json";
+// PhoneDetails.jsx (PART 1)
+
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
 
 import {
-  FaArrowLeft,
-  FaHeart,
-  FaShoppingCart,
   FaStar,
+  FaShoppingCart,
   FaBolt,
+  FaMinus,
+  FaPlus,
+  FaArrowLeft,
+  FaThLarge,
 } from "react-icons/fa";
 
 const PhoneDetails = () => {
   const { slug } = useParams();
+  const navigate = useNavigate();
 
-  const phone = useMemo(() => {
-    return phones.find((item) => item.slug === slug);
+  const [phone, setPhone] = useState(null);
+  const [related, setRelated] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
+  const [selectedVariant, setSelectedVariant] = useState(null);
+
+  // -------------------------
+  // FETCH SINGLE PHONE
+  // -------------------------
+  useEffect(() => {
+    const fetchPhone = async () => {
+      try {
+        setLoading(true);
+
+        const res = await axios.get(
+          `http://localhost:5000/phones/slug/${slug}`,
+        );
+
+        setPhone(res.data.phone);
+        setRelated(res.data.related || []);
+      } catch (error) {
+        console.log(error);
+        setPhone(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPhone();
   }, [slug]);
 
-  if (!phone) {
+  // -------------------------
+  // LOADING
+  // -------------------------
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-4xl font-bold mb-4">
-            Product Not Found
-          </h2>
-
-          <Link to="/" className="btn btn-primary">
-            Back To Shop
-          </Link>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
       </div>
     );
   }
 
-  const discountPercent = Math.round(
-    ((phone.price - phone.discountPrice) / phone.price) * 100
-  );
+  // -------------------------
+  // NOT FOUND
+  // -------------------------
+  if (!phone) {
+    return (
+      <div className="text-center py-20">
+        <h2 className="text-3xl font-bold">Product Not Found</h2>
+        <Link to="/" className="btn btn-primary mt-5">
+          Back Home
+        </Link>
+      </div>
+    );
+  }
 
-  const relatedPhones = phones
-    .filter(
-      (item) =>
-        item.brand === phone.brand &&
-        item._id !== phone._id
-    )
-    .slice(0, 4);
+  const discount = ((phone.price - phone.discountPrice) / phone.price) * 100;
+  // PhoneDetails.jsx (PART 2)
 
   return (
-    <section className="bg-base-100 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8">
+    <section className="bg-base-200 min-h-screen py-8">
+      <div className="max-w-7xl mx-auto px-4">
+        {/* TOP NAV ACTIONS */}
+        <div className="flex flex-wrap gap-3 mb-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="btn btn-outline btn-sm"
+          >
+            <FaArrowLeft /> Back
+          </button>
 
-        {/* Breadcrumb */}
-        <div className="breadcrumbs text-sm mb-4">
-          <ul>
-            <li>
-              <Link to="/">Home</Link>
-            </li>
-
-            <li>
-              <Link to="/">Smartphones</Link>
-            </li>
-
-            <li>{phone.name}</li>
-          </ul>
+          <Link to="/all-brands" className="btn btn-primary btn-sm">
+            <FaThLarge /> Browse All Phones
+          </Link>
         </div>
 
-        {/* Back Button */}
-        <Link
-          to="/"
-          className="btn btn-outline btn-sm mb-8"
-        >
-          <FaArrowLeft />
-          Back
-        </Link>
-
-        {/* Product Section */}
-        <div className="grid lg:grid-cols-2 gap-12">
-
-          {/* LEFT SIDE */}
-          <div>
-
-            {/* Main Image */}
-            <div className="bg-base-200 rounded-3xl p-8">
+        {/* MAIN PRODUCT CARD */}
+        <div className="grid lg:grid-cols-2 gap-10 bg-base-100 p-6 rounded-2xl shadow-lg">
+          {/* IMAGE SECTION */}
+          <div className="space-y-4">
+            <div className="border rounded-xl p-4 bg-white">
               <img
                 src={phone.image}
                 alt={phone.name}
-                className="w-full h-[500px] object-contain"
+                className="w-full h-[420px] object-contain"
               />
             </div>
 
-            {/* Gallery */}
-            {phone.gallery?.length > 0 && (
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                {phone.gallery.map((image, index) => (
-                  <div
-                    key={index}
-                    className="bg-base-200 rounded-xl p-3"
-                  >
-                    <img
-                      src={image}
-                      alt={`${phone.name}-${index}`}
-                      className="h-32 w-full object-cover rounded-lg"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* GALLERY */}
+            <div className="grid grid-cols-4 gap-2">
+              {phone.gallery?.map((img, i) => (
+                <img
+                  key={i}
+                  src={img}
+                  className="h-20 object-cover rounded border hover:scale-105 transition"
+                />
+              ))}
+            </div>
           </div>
 
-          {/* RIGHT SIDE */}
+          {/* INFO SECTION */}
           <div>
-
-            {/* Brand */}
-            <div className="badge badge-primary badge-lg mb-4">
-              {phone.brand}
-            </div>
-
-            {/* Product Name */}
-            <h1 className="text-3xl lg:text-5xl font-bold mb-4">
+            <p className="text-primary font-semibold">{phone.brand}</p>
+            <h1 className="text-3xl lg:text-4xl font-bold mt-2">
               {phone.name}
             </h1>
-
-            {/* Rating */}
-            <div className="flex items-center gap-2 mb-6">
-              <FaStar className="text-warning text-lg" />
-
-              <span className="font-semibold">
-                {phone.rating}
-              </span>
-
+            {/* RATING */}
+            <div className="flex items-center gap-2 mt-3 text-warning">
+              <FaStar />
+              <span className="font-semibold">{phone.rating}</span>
               <span className="text-gray-500">
-                ({phone.reviews?.length || 0} Reviews)
+                ({phone.totalReviews} reviews)
               </span>
             </div>
-
-            {/* Description */}
-            <p className="text-gray-500 leading-7 mb-8">
-              {phone.description}
-            </p>
-
-            {/* Price */}
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-
+            <p className="text-gray-500 mt-1">Sold: {phone.sold} units</p>
+            {/* PRICE */}
+            <div className="flex items-center gap-4 mt-6">
               <span className="text-4xl font-bold text-primary">
                 ${phone.discountPrice}
               </span>
 
-              <span className="line-through text-2xl text-gray-400">
-                ${phone.price}
-              </span>
+              <span className="line-through text-gray-400">${phone.price}</span>
 
-              <span className="badge badge-error badge-lg">
-                -{discountPercent}%
+              <span className="badge badge-error">
+                -{Math.round(discount)}%
               </span>
-
             </div>
+            {/* DESCRIPTION */}
+            <p className="mt-5 text-gray-600 leading-7">{phone.description}</p>
+            {/* COLORS */}
+            <div className="mt-6">
+              <h3 className="font-bold mb-2">Colors</h3>
 
-            {/* Stock */}
-            <div className="mb-8">
-              {phone.stock > 0 ? (
-                <div className="flex items-center gap-3">
-                  <div className="badge badge-success badge-lg">
-                    In Stock
-                  </div>
-
-                  <span className="text-sm text-gray-500">
-                    Only {phone.stock} left
+              <div className="flex flex-wrap gap-2">
+                {phone.colors?.map((c, i) => (
+                  <span key={i} className="badge badge-outline">
+                    {c}
                   </span>
-                </div>
-              ) : (
-                <div className="badge badge-error badge-lg">
-                  Out Of Stock
-                </div>
-              )}
+                ))}
+              </div>
             </div>
+            {/* VARIANTS */}
+            <div className="mt-6">
+              <h3 className="font-bold mb-2">Variants</h3>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col md:flex-row gap-3 mb-8">
+              <div className="grid grid-cols-2 gap-3">
+                {phone.variants?.map((v, i) => (
+                  <div
+                    key={i}
+                    onClick={() => setSelectedVariant(v)}
+                    className={`p-3 border rounded-xl cursor-pointer transition ${
+                      selectedVariant?.ram === v.ram
+                        ? "border-primary bg-base-200"
+                        : ""
+                    }`}
+                  >
+                    <p className="font-semibold">{v.ram}</p>
+                    <p>{v.storage}</p>
+                    <p className="text-primary font-bold">${v.price}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            // PhoneDetails.jsx (PART 3)
+            {/* QUANTITY */}
+            <div className="flex items-center gap-4 mt-6">
+              <button
+                onClick={() => quantity > 1 && setQuantity(quantity - 1)}
+                className="btn btn-outline"
+              >
+                <FaMinus />
+              </button>
 
-              <button className="btn btn-primary flex-1">
+              <span className="text-xl font-bold">{quantity}</span>
+
+              <button
+                onClick={() => setQuantity(quantity + 1)}
+                className="btn btn-outline"
+              >
+                <FaPlus />
+              </button>
+            </div>
+            {/* ACTION BUTTONS */}
+            <div className="grid md:grid-cols-2 gap-4 mt-8">
+              <button className="btn btn-primary">
                 <FaShoppingCart />
                 Add To Cart
               </button>
 
-              <button className="btn btn-secondary flex-1">
+              <button className="btn btn-error">
                 <FaBolt />
                 Buy Now
               </button>
-
-              <button className="btn btn-outline">
-                <FaHeart />
-              </button>
-
             </div>
-
-            {/* Specifications */}
-            <div className="card bg-base-200 shadow-md">
-              <div className="card-body">
-
-                <h2 className="card-title text-2xl">
-                  Specifications
-                </h2>
-
-                <div className="overflow-x-auto">
-                  <table className="table">
-
-                    <tbody>
-
-                      <tr>
-                        <td className="font-semibold">
-                          Display
-                        </td>
-                        <td>
-                          {phone.specifications?.display}
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td className="font-semibold">
-                          Processor
-                        </td>
-                        <td>
-                          {phone.specifications?.processor}
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td className="font-semibold">
-                          RAM
-                        </td>
-                        <td>
-                          {phone.specifications?.ram}
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td className="font-semibold">
-                          Storage
-                        </td>
-                        <td>
-                          {phone.specifications?.storage}
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td className="font-semibold">
-                          Battery
-                        </td>
-                        <td>
-                          {phone.specifications?.battery}
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td className="font-semibold">
-                          Camera
-                        </td>
-                        <td>
-                          {phone.specifications?.camera}
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td className="font-semibold">
-                          Operating System
-                        </td>
-                        <td>
-                          {phone.specifications?.os}
-                        </td>
-                      </tr>
-
-                    </tbody>
-
-                  </table>
-                </div>
-
-              </div>
-            </div>
-
-            {/* Product Description */}
-            <div className="card bg-base-200 shadow-md mt-6">
-              <div className="card-body">
-
-                <h2 className="card-title text-2xl">
-                  Product Description
-                </h2>
-
-                <p className="leading-8 text-gray-600">
-                  {phone.description}
-                </p>
-
-              </div>
-            </div>
-
           </div>
         </div>
 
-        {/* Related Phones */}
-        <div className="mt-20">
+        {/* SPECIFICATIONS */}
+        <div className="bg-base-100 p-6 mt-10 rounded-2xl shadow">
+          <h2 className="text-2xl font-bold mb-5">Specifications</h2>
 
-          <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-            <h2 className="text-3xl font-bold">
-              Related Phones
-            </h2>
+          <table className="table w-full">
+            <tbody>
+              {Object.entries(phone.specifications || {}).map(([k, v]) => (
+                <tr key={k}>
+                  <td className="font-semibold capitalize">{k}</td>
+                  <td>{v}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-            <Link
-              to="/"
-              className="btn btn-outline btn-sm"
-            >
-              View All Phones
-            </Link>
-          </div>
+        {/* RELATED PRODUCTS */}
+        <div className="mt-14">
+          <h2 className="text-2xl font-bold mb-6">Related Products</h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-
-            {relatedPhones.map((item) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {related?.map((item) => (
               <div
                 key={item._id}
-                className="card bg-base-100 border hover:shadow-xl transition-all duration-300"
+                className="card bg-base-100 border hover:shadow-lg transition"
               >
-                <figure className="p-4">
-                  <Link to={`/phone/${item.slug}`}>
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="h-52 object-contain"
-                    />
-                  </Link>
-                </figure>
+                <img src={item.image} className="h-40 object-contain p-3" />
 
-                <div className="card-body pt-0">
+                <div className="p-3">
+                  <h3 className="text-sm font-bold line-clamp-2">
+                    {item.name}
+                  </h3>
 
-                  <div className="badge badge-primary">
-                    {item.brand}
-                  </div>
-
-                  <Link to={`/phone/${item.slug}`}>
-                    <h2 className="card-title text-base hover:text-primary line-clamp-2">
-                      {item.name}
-                    </h2>
-                  </Link>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-primary font-bold text-lg">
-                      ${item.discountPrice}
-                    </span>
-
-                    <span className="line-through text-gray-400 text-sm">
-                      ${item.price}
-                    </span>
-                  </div>
+                  <p className="text-primary font-bold">
+                    ${item.discountPrice}
+                  </p>
 
                   <Link
                     to={`/phone/${item.slug}`}
                     className="btn btn-primary btn-sm w-full mt-2"
                   >
-                    View Details
+                    View
                   </Link>
-
                 </div>
               </div>
             ))}
-
           </div>
         </div>
-
       </div>
     </section>
   );

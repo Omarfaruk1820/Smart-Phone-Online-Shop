@@ -1,44 +1,35 @@
 import { useContext, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-
 import {
   FaBars,
   FaTimes,
   FaShoppingCart,
   FaSignOutAlt,
-  FaTachometerAlt,
   FaUserShield,
+  FaUserCircle,
+  FaStore,
+  FaTachometerAlt,
 } from "react-icons/fa";
 
 import { AuthContext } from "../Auth/AuthProvider";
 
 const Navbar = () => {
-  const { user, loading, logOutUser } =
-    useContext(AuthContext);
-
   const navigate = useNavigate();
-
   const [isOpen, setIsOpen] = useState(false);
 
-  // Temporary Admin Check
-  const role =
-    user?.email === "admin@gmail.com"
-      ? "admin"
-      : "user";
+  const { user, role, loading, logOutUser } = useContext(AuthContext);
 
   const isAdmin = role === "admin";
 
-  const navbarTheme = isAdmin
-    ? "bg-indigo-600"
-    : "bg-emerald-600";
+  const navbarTheme = isAdmin ? "bg-indigo-600" : "bg-emerald-600";
+
+  const userName =
+    user?.displayName || user?.name || user?.email?.split("@")[0] || "User";
 
   const userPhoto =
     user?.photoURL ||
-    user?.providerData?.[0]?.photoURL ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      user?.displayName ||
-        user?.email ||
-        "User"
+      userName,
     )}&background=random&size=256`;
 
   const navLinks = [
@@ -46,12 +37,10 @@ const Navbar = () => {
       name: "Home",
       path: "/",
     },
-
     {
       name: "All Mobiles",
       path: "/allbrands",
     },
-
     {
       name: "Accessories",
       path: "/accessories",
@@ -70,7 +59,7 @@ const Navbar = () => {
       ? [
           {
             name: "Admin Panel",
-            path: "/dashboard/admin",
+            path: "/admin",
           },
         ]
       : []),
@@ -112,38 +101,41 @@ const Navbar = () => {
 
   if (loading) {
     return (
-      <div className="navbar bg-base-100 shadow">
-        <div className="container mx-auto">
-          <span className="loading loading-spinner loading-lg"></span>
-        </div>
+      <div className="flex justify-center py-10">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
       </div>
     );
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-base-100 shadow-md">
-      <div className="navbar container mx-auto px-4">
+    <header className="sticky top-0 z-50 bg-base-100 border-b shadow-md">
+      <div className="navbar max-w-7xl mx-auto px-4">
         {/* Logo */}
         <div className="navbar-start">
           <Link
             to="/"
-            className={`text-xl md:text-2xl font-bold text-white px-4 py-2 rounded-xl ${navbarTheme}`}
+            className={`px-4 py-2 rounded-xl text-white font-bold text-xl md:text-2xl ${navbarTheme}`}
           >
-            MobileHub
+            <span className="flex items-center gap-2">
+              <FaStore />
+              MobileHub
+            </span>
           </Link>
         </div>
 
         {/* Desktop Menu */}
         <div className="navbar-center hidden lg:flex">
-          <ul className="menu menu-horizontal gap-2">
+          <ul className="menu menu-horizontal gap-1">
             {navLinks.map((link) => (
               <li key={link.path}>
                 <NavLink
                   to={link.path}
                   className={({ isActive }) =>
-                    isActive
-                      ? `${navbarTheme} text-white rounded-lg`
-                      : "rounded-lg"
+                    `rounded-xl px-4 py-2 duration-300 ${
+                      isActive
+                        ? `${navbarTheme} text-white`
+                        : "hover:bg-base-200"
+                    }`
                   }
                 >
                   <span className="flex items-center gap-2">
@@ -157,12 +149,12 @@ const Navbar = () => {
         </div>
 
         {/* Right Side */}
-        <div className="navbar-end gap-2">
+        <div className="navbar-end gap-3">
           {!user ? (
             <>
               <Link
                 to="/login"
-                className="btn btn-outline btn-sm"
+                className="btn btn-outline btn-sm hidden sm:flex"
               >
                 Login
               </Link>
@@ -175,108 +167,137 @@ const Navbar = () => {
               </Link>
             </>
           ) : (
-            <div className="hidden md:flex items-center gap-3">
-              <img
-                src={userPhoto}
-                alt={user?.displayName || "User"}
-                referrerPolicy="no-referrer"
-                loading="lazy"
-                onError={(e) => {
-                  e.currentTarget.src =
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                      user?.displayName ||
-                        user?.email ||
-                        "User"
-                    )}&background=random&size=256`;
-                }}
-                className="w-11 h-11 rounded-full border-2 border-primary object-cover"
-              />
+            <>
+              {/* User Info */}
+              <div className="hidden lg:flex flex-col text-right">
+                <h4 className="font-semibold text-sm">{userName}</h4>
 
-              <div className="hidden lg:block">
-                <h3 className="font-semibold text-sm">
-                  {user?.displayName}
-                </h3>
-
-                <p className="text-xs text-gray-500">
-                  {user?.email}
-                </p>
+                <p className="text-xs text-gray-500">{user?.email}</p>
 
                 <span
-                  className={`badge badge-xs mt-1 ${
-                    isAdmin
-                      ? "badge-secondary"
-                      : "badge-success"
+                  className={`text-xs font-medium ${
+                    role === "admin"
+                      ? "text-purple-600"
+                      : role === "seller"
+                        ? "text-orange-500"
+                        : "text-green-600"
                   }`}
                 >
-                  {isAdmin ? "Admin" : "User"}
+                  {role?.toUpperCase()}
                 </span>
               </div>
 
-              <button
-                onClick={handleLogout}
-                className="btn btn-error btn-sm text-white"
-              >
-                <FaSignOutAlt />
-                Logout
-              </button>
-            </div>
+              {/* Profile Dropdown */}
+              <div className="dropdown dropdown-end">
+                <label tabIndex={0} className="cursor-pointer">
+                  <img
+                    src={userPhoto}
+                    alt="user"
+                    className="w-11 h-11 rounded-full object-cover border-2 border-primary"
+                  />
+                </label>
+
+                <ul
+                  tabIndex={0}
+                  className="dropdown-content menu p-4 shadow bg-base-100 rounded-box w-72 z-[100]"
+                >
+                  <div className="border-b pb-3 mb-3">
+                    <h3 className="font-bold">{userName}</h3>
+
+                    <p className="text-sm text-gray-500 break-all">
+                      {user?.email}
+                    </p>
+
+                    <span
+                      className={`badge mt-2 gap-2 ${
+                        role === "admin"
+                          ? "badge-secondary"
+                          : role === "seller"
+                            ? "badge-warning"
+                            : "badge-success"
+                      }`}
+                    >
+                      {role === "admin" ? (
+                        <>
+                          <FaUserShield />
+                          Admin
+                        </>
+                      ) : role === "seller" ? (
+                        <>
+                          <FaTachometerAlt />
+                          Seller
+                        </>
+                      ) : (
+                        <>
+                          <FaUserCircle />
+                          Customer
+                        </>
+                      )}
+                    </span>
+                  </div>
+
+                  <li>
+                    <Link to="/dashboard">Dashboard</Link>
+                  </li>
+
+                  {isAdmin && (
+                    <li>
+                      <Link to="/admin">Admin Panel</Link>
+                    </li>
+                  )}
+
+                  <li>
+                    <button onClick={handleLogout}>
+                      <FaSignOutAlt />
+                      Logout
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </>
           )}
 
-          {/* Mobile Menu */}
+          {/* Mobile Menu Button */}
           <button
+            onClick={() => setIsOpen(!isOpen)}
             className="btn btn-ghost lg:hidden"
-            onClick={() =>
-              setIsOpen(!isOpen)
-            }
           >
-            {isOpen ? (
-              <FaTimes size={22} />
-            ) : (
-              <FaBars size={22} />
-            )}
+            {isOpen ? <FaTimes size={22} /> : <FaBars size={22} />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Menu */}
       <div
         className={`lg:hidden overflow-hidden transition-all duration-300 ${
-          isOpen
-            ? "max-h-[1000px]"
-            : "max-h-0"
+          isOpen ? "max-h-[1000px]" : "max-h-0"
         }`}
       >
-        <div className="bg-base-100 border-t p-4">
+        <div className="bg-base-100 border-t px-4 py-5">
           {user && (
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-base-200 mb-4">
+            <div className="flex items-center gap-4 bg-base-200 p-4 rounded-2xl mb-5">
               <img
                 src={userPhoto}
-                alt={user?.displayName || "User"}
-                className="w-14 h-14 rounded-full object-cover border-2 border-primary"
+                alt=""
+                className="w-14 h-14 rounded-full border-2 border-primary"
               />
 
               <div>
-                <h3 className="font-semibold">
-                  {user?.displayName}
-                </h3>
+                <h3 className="font-semibold">{userName}</h3>
 
-                <p className="text-xs text-gray-500">
-                  {user?.email}
-                </p>
+                <p className="text-xs text-gray-500 break-all">{user?.email}</p>
 
-                <div className="mt-1">
-                  {isAdmin ? (
-                    <span className="badge badge-secondary">
-                      <FaUserShield />
-                      Admin
-                    </span>
-                  ) : (
-                    <span className="badge badge-success">
-                      <FaTachometerAlt />
-                      User
-                    </span>
-                  )}
-                </div>
+                <span
+                  className={`badge mt-2 ${
+                    role === "admin"
+                      ? "badge-secondary"
+                      : role === "seller"
+                        ? "badge-warning"
+                        : "badge-success"
+                  }`}
+                >
+                  {role || "customer"}
+                </span>
               </div>
             </div>
           )}
@@ -288,7 +309,7 @@ const Navbar = () => {
                   to={link.path}
                   onClick={closeMobileMenu}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-4 py-3 rounded-xl ${
+                    `flex items-center gap-3 px-4 py-3 rounded-xl duration-300 ${
                       isActive
                         ? `${navbarTheme} text-white`
                         : "hover:bg-base-200"
@@ -302,7 +323,7 @@ const Navbar = () => {
             ))}
           </ul>
 
-          <div className="mt-4">
+          <div className="mt-5">
             {!user ? (
               <div className="grid grid-cols-2 gap-3">
                 <Link
@@ -324,7 +345,7 @@ const Navbar = () => {
             ) : (
               <button
                 onClick={handleLogout}
-                className="btn btn-error w-full text-white"
+                className="btn btn-error text-white w-full"
               >
                 <FaSignOutAlt />
                 Logout

@@ -1,79 +1,155 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import phones from "../../data/phones.json";
+// AllBrands.jsx (PART 1)
 
-import { FaSearch, FaShoppingCart, FaMobileAlt } from "react-icons/fa";
+import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-const brands = [
-  "All",
-  "Samsung",
-  "Apple",
-  "Xiaomi",
-  "Vivo",
-  "Oppo",
-  "Realme",
-  "OnePlus",
-  "Nokia",
-  "Motorola",
-  "Google Pixel",
-  "Honor",
-  "Huawei",
-  "Infinix",
-  "Tecno",
-  "Itel",
-];
+import { FaSearch, FaStar, FaBolt, FaShoppingCart } from "react-icons/fa";
 
 const AllBrands = () => {
+  const navigate = useNavigate();
+
+  const [phones, setPhones] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [selectedBrand, setSelectedBrand] = useState("All");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
   const [sort, setSort] = useState("low");
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const itemsPerPage = 12;
+
+  // -------------------------
+  // FETCH PHONES
+  // -------------------------
+  useEffect(() => {
+    const fetchPhones = async () => {
+      try {
+        setLoading(true);
+
+        const res = await axios.get(
+          `http://localhost:5000/phones?page=${currentPage}&limit=${itemsPerPage}`,
+        );
+
+        setPhones(res.data.phones || []);
+        setTotalPages(res.data.totalPages || 1);
+      } catch (error) {
+        console.log(error);
+        setPhones([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPhones();
+  }, [currentPage]);
+
+  // -------------------------
+  // DEBOUNCE SEARCH
+  // -------------------------
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // -------------------------
+  // BRANDS
+  // -------------------------
+  const brands = useMemo(() => {
+    return ["All", ...new Set(phones.map((p) => p.brand).filter(Boolean))];
+  }, [phones]);
+
+  // -------------------------
+  // FILTER + SORT
+  // -------------------------
   const filteredProducts = useMemo(() => {
-    let filtered = phones.filter((phone) => {
-      const matchesBrand =
-        selectedBrand === "All" || phone.brand === selectedBrand;
+    let data = [...phones];
 
-      const matchesSearch =
-        phone.name?.toLowerCase().includes(search.toLowerCase()) ||
-        phone.model?.toLowerCase().includes(search.toLowerCase());
-
-      return matchesBrand && matchesSearch;
-    });
-
-    if (sort === "low") {
-      filtered.sort((a, b) => a.discountPrice - b.discountPrice);
+    if (selectedBrand !== "All") {
+      data = data.filter((p) => p.brand === selectedBrand);
     }
 
-    if (sort === "high") {
-      filtered.sort((a, b) => b.discountPrice - a.discountPrice);
+    if (debouncedSearch) {
+      data = data.filter((p) =>
+        `${p.name} ${p.model} ${p.brand}`
+          .toLowerCase()
+          .includes(debouncedSearch.toLowerCase()),
+      );
     }
 
-    return filtered;
-  }, [selectedBrand, search, sort]);
+    switch (sort) {
+      case "low":
+        data.sort((a, b) => a.discountPrice - b.discountPrice);
+        break;
+      case "high":
+        data.sort((a, b) => b.discountPrice - a.discountPrice);
+        break;
+      case "rating":
+        data.sort((a, b) => b.rating - a.rating);
+        break;
+      case "sold":
+        data.sort((a, b) => b.sold - a.sold);
+        break;
+      default:
+        break;
+    }
+
+    return data;
+  }, [phones, selectedBrand, debouncedSearch, sort]);
+
+  // -------------------------
+  // ADD TO CART
+  // -------------------------
+  const addToCart = (phone) => {
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+    const exists = cart.find((item) => item._id === phone._id);
+
+    if (exists) {
+      exists.qty += 1;
+    } else {
+      cart.push({ ...phone, qty: 1 });
+    }
+
+    localStorage.setItem("cart", JSON.stringify(cart));
+    alert("Added to cart!");
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <span className="loading loading-spinner loading-lg"></span>
+      </div>
+    );
+  }
+  // AllBrands.jsx (PART 2)
 
   return (
     <section className="bg-base-100 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 py-10">
-        {/* Header */}
-        <div className="mb-8 ">
-          <h1 className="text-4xl text-center font-bold mb-3">All Smartphone Brands</h1>
-
-          <p className="text-gray-500 text-center">
-            Explore premium smartphones from top brands around the world.
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* HEADER */}
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-bold">All Smartphones</h1>
+          <p className="text-gray-500">
+            Premium mobile collection with best deals
           </p>
         </div>
-
-        {/* Search & Sort */}
-        <div className="flex flex-col lg:flex-row gap-4 justify-between mb-8">
+        {/* SEARCH + SORT */}
+        <div className="flex flex-col lg:flex-row gap-3 justify-between mb-6">
           <div className="relative w-full lg:w-96">
-            <FaSearch className="absolute left-4 top-4 text-gray-400" />
-
+            <FaSearch className="absolute left-3 top-3 text-gray-400" />
             <input
-              type="text"
-              placeholder="Search smartphone..."
+              className="input input-bordered w-full pl-10"
+              placeholder="Search phones..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input input-bordered w-full pl-12"
             />
           </div>
 
@@ -82,14 +158,14 @@ const AllBrands = () => {
             value={sort}
             onChange={(e) => setSort(e.target.value)}
           >
-            <option value="low">Price: Low → High</option>
-
-            <option value="high">Price: High → Low</option>
+            <option value="low">Price Low → High</option>
+            <option value="high">Price High → Low</option>
+            <option value="rating">Top Rated</option>
+            <option value="sold">Best Selling</option>
           </select>
         </div>
-
-        {/* Brands */}
-        <div className="flex flex-wrap gap-3 mb-10">
+        {/* BRAND FILTER */}
+        <div className="flex flex-wrap gap-2 mb-6">
           {brands.map((brand) => (
             <button
               key={brand}
@@ -102,77 +178,72 @@ const AllBrands = () => {
             </button>
           ))}
         </div>
+        {/* PRODUCTS GRID */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {filteredProducts.map((phone) => (
+            <div
+              key={phone._id}
+              className="card bg-base-100 shadow border hover:shadow-xl transition"
+            >
+              {/* IMAGE CLICK → NAVIGATE DETAILS PAGE */}
+              <figure className="p-4 relative">
+                {phone.flashSale && (
+                  <span className="badge badge-error absolute top-3 left-3">
+                    <FaBolt /> Sale
+                  </span>
+                )}
 
-        {/* Count */}
-        <div className="mb-6">
-          <h3 className="font-semibold">
-            {filteredProducts.length} Products Found
-          </h3>
-        </div>
+                <img
+                  src={phone.image}
+                  alt={phone.name}
+                  className="h-52 object-contain cursor-pointer transition-transform duration-300 hover:scale-105"
+                  onClick={() => navigate(`/phone/${phone.slug}`)}
+                />
+              </figure>
 
-        {/* Products */}
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-20">
-            <FaMobileAlt className="mx-auto text-5xl mb-4 opacity-30" />
+              <div className="card-body">
+                <h2 className="font-bold line-clamp-2">{phone.name}</h2>
 
-            <h3 className="text-2xl font-bold">No Products Found</h3>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filteredProducts.map((phone) => (
-              <div
-                key={phone._id}
-                className="card bg-base-100 border hover:shadow-xl transition-all duration-300"
-              >
-                <figure className="p-4">
-                  <Link to={`/phone/${phone.slug}`}>
-                    <img
-                      src={phone.image}
-                      alt={phone.name}
-                      className="h-60 object-contain"
-                    />
-                  </Link>
-                </figure>
+                <p className="text-sm text-primary">{phone.brand}</p>
 
-                <div className="card-body">
-                  <p className="text-primary text-sm font-medium">
-                    {phone.brand}
-                  </p>
-
-                  <Link to={`/phone/${phone.slug}`}>
-                    <h2 className="card-title text-base hover:text-primary">
-                      {phone.name}
-                    </h2>
-                  </Link>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl font-bold text-primary">
-                      ${phone.discountPrice}
-                    </span>
-
-                    <span className="line-through text-gray-400 text-sm">
-                      ${phone.price}
-                    </span>
-                  </div>
-
-                  <div className="card-actions mt-3">
-                    <Link
-                      to={`/phone/${phone.slug}`}
-                      className="btn btn-primary btn-sm w-full"
-                    >
-                      View Details
-                    </Link>
-
-                    <button className="btn btn-outline btn-sm w-full">
-                      <FaShoppingCart />
-                      Add Cart
-                    </button>
-                  </div>
+                <div className="flex items-center gap-1 text-warning">
+                  <FaStar /> {phone.rating}
                 </div>
+
+                <div className="flex gap-2">
+                  <span className="text-primary font-bold">
+                    ${phone.discountPrice}
+                  </span>
+                  <span className="line-through text-gray-400">
+                    ${phone.price}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => addToCart(phone)}
+                  className="btn btn-primary w-full mt-3"
+                >
+                  <FaShoppingCart /> Add to Cart
+                </button>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
+       
+        {/* PAGINATION */}
+        <div className="flex justify-center mt-10 gap-2">
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`btn btn-sm ${
+                currentPage === i + 1 ? "btn-primary" : "btn-outline"
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );
