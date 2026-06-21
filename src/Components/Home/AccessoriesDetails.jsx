@@ -1,8 +1,7 @@
-// AccessoriesDetails.jsx (PART 1)
-
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import axios from "axios";
+import toast, { Toaster } from "react-hot-toast";
 
 import {
   FaStar,
@@ -13,15 +12,24 @@ import {
   FaBoxOpen,
 } from "react-icons/fa";
 
+import { AuthContext } from "../Auth/AuthProvider";
+import useCart from "../Hook/useCart";
+
 const AccessoriesDetails = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
 
+  const { user } = useContext(AuthContext);
+
+  const { refetch } = useCart();
+
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
-
   const [loading, setLoading] = useState(true);
 
+  // ======================
+  // FETCH ACCESSORY
+  // ======================
   useEffect(() => {
     const fetchAccessory = async () => {
       try {
@@ -43,47 +51,85 @@ const AccessoriesDetails = () => {
 
     fetchAccessory();
 
-    // scroll top
     window.scrollTo(0, 0);
   }, [slug]);
 
-  // Loading UI
+  // ======================
+  // ADD TO CART
+  // ======================
+  const handleAddToCart = async () => {
+    if (!user) {
+      toast.error("Please login first");
+      navigate("/login");
+      return;
+    }
+
+    const cartItem = {
+      productId: product._id,
+      name: product.name,
+      brand: product.brand,
+      image: product.image,
+      price: product.oldPrice || product.price,
+      discountPrice: product.price,
+      quantity: 1,
+      userEmail: user.email,
+    };
+
+    try {
+      const res = await axios.post("http://localhost:5000/cart", cartItem);
+
+      if (res.data.success) {
+        refetch();
+
+        toast.success(`${product.name} added successfully 🛒`, {
+          position: "top-right",
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to add product");
+    }
+  };
+
+  // ======================
+  // LOADING
+  // ======================
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
+      <div className="max-w-7xl mx-auto px-4 py-10">
+        <div className="skeleton h-[500px] rounded-3xl"></div>
       </div>
     );
   }
 
-  // Product Not Found
+  // ======================
+  // NOT FOUND
+  // ======================
   if (!product) {
     return (
-      <div className="text-center py-20">
-        <h2 className="text-3xl font-bold">Product Not Found</h2>
+      <div className="text-center py-24">
+        <h1 className="text-3xl font-bold">Product Not Found</h1>
 
-        <Link to="/accessories" className="btn btn-primary mt-5">
+        <Link to="/accessories" className="btn btn-primary mt-6">
           Back to Accessories
         </Link>
       </div>
     );
   }
-  // AccessoriesDetails.jsx (PART 2)
 
   return (
     <section className="max-w-7xl mx-auto px-4 py-10">
-      {/* BACK BUTTON */}
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-primary mb-6"
+        className="flex items-center gap-2 text-primary mb-8"
       >
         <FaArrowLeft />
         Back
       </button>
+
       {/* BADGES */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap gap-3 mb-5">
         {product.isFeatured && (
-          <span className="badge badge-primary">Featured</span>
+          <span className="badge badge-info">Featured</span>
         )}
 
         {product.bestSeller && (
@@ -98,10 +144,10 @@ const AccessoriesDetails = () => {
           <span className="badge badge-error">Flash Sale</span>
         )}
       </div>
-      {/* MAIN CARD */}
-      <div className="grid lg:grid-cols-2 gap-10 bg-base-100 rounded-2xl shadow-lg p-6">
+
+      <div className="grid lg:grid-cols-2 gap-10 bg-base-100 rounded-3xl shadow-xl p-6">
         {/* IMAGE */}
-        <div className="bg-base-200 rounded-xl p-6 flex justify-center items-center">
+        <div className="bg-base-200 rounded-2xl p-8 flex justify-center">
           <img
             src={product.image}
             alt={product.name}
@@ -113,16 +159,16 @@ const AccessoriesDetails = () => {
         <div>
           <h1 className="text-3xl lg:text-4xl font-bold">{product.name}</h1>
 
-          <p className="text-gray-500 mt-2">
-            Brand: <span className="font-semibold">{product.brand}</span>
+          <p className="mt-3 text-gray-500">
+            Brand :<span className="font-bold ml-2">{product.brand}</span>
           </p>
 
           <p className="text-gray-500">
-            Category: <span className="font-semibold">{product.category}</span>
+            Category :<span className="font-bold ml-2">{product.category}</span>
           </p>
 
           {/* Rating */}
-          <div className="flex items-center gap-2 text-yellow-500 mt-4">
+          <div className="flex items-center gap-2 mt-5 text-warning">
             <FaStar />
 
             <span>{product.rating}</span>
@@ -132,8 +178,8 @@ const AccessoriesDetails = () => {
             </span>
           </div>
 
-          {/* Price */}
-          <div className="flex items-center gap-3 mt-6">
+          {/* PRICE */}
+          <div className="flex flex-wrap gap-4 items-center mt-7">
             <span className="text-4xl font-bold text-primary">
               ৳{product.price}
             </span>
@@ -145,51 +191,39 @@ const AccessoriesDetails = () => {
             <span className="badge badge-success">-{product.discount}%</span>
           </div>
 
-          {/* Stock */}
-          <div className="mt-5">
-            <p>
-              Stock Status :
-              <span className="text-green-600 font-bold ml-2">
-                {product.stockStatus}
-              </span>
-            </p>
-
-            <p className="text-gray-500 mt-2">Sold : {product.sold} units</p>
-          </div>
-
-          {/* Warranty */}
-          <div className="bg-base-200 rounded-xl p-4 mt-6">
-            <h3 className="font-bold flex items-center gap-2 mb-2">
+          {/* WARRANTY */}
+          <div className="bg-base-200 rounded-2xl p-5 mt-7">
+            <h2 className="font-bold flex items-center gap-2 mb-3">
               <FaBoxOpen />
               Warranty
-            </h3>
+            </h2>
 
             <p>{product.warranty?.officialWarranty}</p>
 
             <p>{product.warranty?.replacementPolicy}</p>
           </div>
 
-          {/* Features */}
-          <div className="space-y-2 mt-6">
-            <p className="flex gap-2 items-center">
+          {/* FEATURES */}
+          <div className="space-y-3 mt-7">
+            <div className="flex gap-2">
               <FaCheckCircle className="text-green-500" />
               Original Product
-            </p>
+            </div>
 
-            <p className="flex gap-2 items-center">
+            <div className="flex gap-2">
               <FaCheckCircle className="text-green-500" />
               Fast Delivery
-            </p>
+            </div>
 
-            <p className="flex gap-2 items-center">
+            <div className="flex gap-2">
               <FaCheckCircle className="text-green-500" />
               Secure Payment
-            </p>
+            </div>
           </div>
 
-          {/* Buttons */}
+          {/* BUTTONS */}
           <div className="grid md:grid-cols-2 gap-4 mt-8">
-            <button className="btn btn-primary">
+            <button onClick={handleAddToCart} className="btn btn-primary">
               <FaShoppingCart />
               Add To Cart
             </button>
@@ -201,17 +235,19 @@ const AccessoriesDetails = () => {
           </div>
         </div>
       </div>
-      // AccessoriesDetails.jsx (PART 3)
+
       {/* DESCRIPTION */}
-      <div className="bg-base-100 rounded-2xl shadow mt-10 p-6">
-        <h2 className="text-2xl font-bold mb-4">Description</h2>
+      <div className="bg-base-100 rounded-3xl shadow-xl mt-10 p-8">
+        <h2 className="text-2xl font-bold mb-5">Description</h2>
 
         <p className="text-gray-600 leading-8">
-          {product.name} is a premium {product.category} product from{" "}
-          {product.brand}. It provides excellent performance, premium build
-          quality, and long-term durability.
+          {product.name} is a premium
+          {` ${product.category} `}
+          product from {product.brand}. It offers excellent build quality,
+          durability and reliable performance.
         </p>
       </div>
+
       {/* RELATED PRODUCTS */}
       {relatedProducts.length > 0 && (
         <div className="mt-14">
@@ -221,7 +257,7 @@ const AccessoriesDetails = () => {
             {relatedProducts.map((item) => (
               <div
                 key={item._id}
-                className="card bg-base-100 shadow hover:shadow-2xl transition cursor-pointer"
+                className="card bg-base-100 shadow-lg hover:shadow-2xl transition cursor-pointer"
                 onClick={() => navigate(`/accessories/${item.slug}`)}
               >
                 <figure className="p-4">
@@ -233,20 +269,20 @@ const AccessoriesDetails = () => {
                 </figure>
 
                 <div className="card-body">
-                  <h2 className="text-sm font-bold line-clamp-2">
+                  <h2 className="font-bold text-sm line-clamp-2">
                     {item.name}
                   </h2>
 
                   <p className="text-xs text-gray-500">{item.brand}</p>
 
-                  <div className="flex items-center gap-1 text-yellow-500">
+                  <div className="flex items-center gap-2 text-warning">
                     <FaStar />
 
                     {item.rating}
                   </div>
 
                   <div className="flex gap-2">
-                    <span className="text-primary font-bold">
+                    <span className="font-bold text-primary">
                       ৳{item.price}
                     </span>
 
@@ -260,6 +296,32 @@ const AccessoriesDetails = () => {
           </div>
         </div>
       )}
+      <Toaster
+        position="top-right"
+        gutter={12}
+        containerStyle={{
+          top: 20,
+          right: 20,
+        }}
+        toastOptions={{
+          duration: 3000,
+          success: {
+            style: {
+              background: "#10B981",
+              color: "#fff",
+              borderRadius: "14px",
+              fontWeight: "600",
+            },
+          },
+          error: {
+            style: {
+              background: "#EF4444",
+              color: "#fff",
+              borderRadius: "14px",
+            },
+          },
+        }}
+      />
     </section>
   );
 };

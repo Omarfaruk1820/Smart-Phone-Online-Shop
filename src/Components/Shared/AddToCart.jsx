@@ -1,262 +1,569 @@
-import { useMemo, useState } from "react";
-import moment from "moment";
+import { useContext, useEffect, useState } from "react";
+import axios from "axios";
+import Swal from "sweetalert2";
+import toast from "react-hot-toast";
+import { motion } from "framer-motion";
+
 import {
   FaTrash,
   FaMinus,
   FaPlus,
-  FaShoppingBag,
   FaArrowLeft,
-  FaTruck,
-  FaTag,
   FaLock,
+  FaTruck,
+  FaShoppingBag,
+  FaHeart,
 } from "react-icons/fa";
-import { Link } from "react-router-dom";
+
+import { Link, useNavigate } from "react-router-dom";
+
+import { useMutation } from "@tanstack/react-query";
+
+import { AuthContext } from "../Auth/AuthProvider";
+import useCart from "../Hook/useCart";
 
 const AddToCart = () => {
-  const [cartItems, setCartItems] = useState([
-    {
-      _id: 1,
-      name: "Samsung Galaxy S25 Ultra",
-      brand: "Samsung",
-      image:
-        "https://images.samsung.com/is/image/samsung/p6pim/bd/2501/gallery/bd-galaxy-s25-ultra-s938-sm-s938bzkgbkd-thumb-544701539",
-      price: 320,
-      discountPrice: 298,
-      quantity: 1,
+  const navigate = useNavigate();
+
+  const { user } = useContext(AuthContext);
+
+  const { cart, isLoading, refetch } = useCart();
+
+  // =========================
+  // Coupon States
+  // =========================
+  const [couponCode, setCouponCode] = useState("");
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [appliedCoupon, setAppliedCoupon] = useState("");
+
+  // =========================
+  // Save For Later
+  // =========================
+  const [savedProducts, setSavedProducts] = useState([]);
+
+  // =========================
+  // Recommended Products
+  // =========================
+  const [recommendedProducts, setRecommendedProducts] = useState([]);
+
+  // =========================
+  // Cart Calculations
+  // =========================
+  const subtotal = cart.reduce(
+    (sum, item) => sum + item.discountPrice * item.quantity,
+    0,
+  );
+
+  const shipping = subtotal > 50000 ? 0 : 120;
+
+  const finalTotal = subtotal + shipping - discountAmount;
+
+  // =========================
+  // Free Shipping Progress
+  // =========================
+  const freeShippingTarget = 50000;
+
+  const remainingAmount = freeShippingTarget - subtotal;
+
+  const progressPercentage = Math.min(
+    (subtotal / freeShippingTarget) * 100,
+    100,
+  );
+
+  // =========================
+  // Increase Quantity Mutation
+  // =========================
+  const increaseMutation = useMutation({
+    mutationFn: (id) =>
+      axios.patch(`http://localhost:5000/cart/increase/${id}`),
+
+    onSuccess: () => {
+      refetch();
+
+      toast.success("Quantity Updated");
     },
-    {
-      _id: 2,
-      name: "iPhone 17 Pro Max",
-      brand: "Apple",
-      image:
-        "https://fdn2.gsmarena.com/vv/pics/apple/apple-iphone-16-pro-max-1.jpg",
-      price: 450,
-      discountPrice: 429,
-      quantity: 1,
+
+    onError: () => {
+      toast.error("Failed To Update Quantity");
     },
-  ]);
+  });
 
-  // Increase quantity
-  const increaseQuantity = (id) => {
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item._id === id ? { ...item, quantity: item.quantity + 1 } : item,
-      ),
-    );
+  // =========================
+  // Decrease Quantity Mutation
+  // =========================
+  const decreaseMutation = useMutation({
+    mutationFn: (id) =>
+      axios.patch(`http://localhost:5000/cart/decrease/${id}`),
+
+    onSuccess: () => {
+      refetch();
+    },
+
+    onError: () => {
+      toast.error("Minimum Quantity Is 1");
+    },
+  });
+
+  // =========================
+  // Delete Product Mutation
+  // =========================
+  const deleteMutation = useMutation({
+    mutationFn: (id) => axios.delete(`http://localhost:5000/cart/${id}`),
+
+    onSuccess: () => {
+      refetch();
+
+      toast.success("Product Removed");
+    },
+
+    onError: () => {
+      toast.error("Delete Failed");
+    },
+  });
+
+  // =========================
+  // Clear Cart Mutation
+  // =========================
+  const clearCartMutation = useMutation({
+    mutationFn: () =>
+      axios.delete(`http://localhost:5000/cart/clear/${user.email}`),
+
+    onSuccess: () => {
+      refetch();
+
+      toast.success("Cart Cleared Successfully");
+    },
+
+    onError: () => {
+      toast.error("Failed To Clear Cart");
+    },
+  });
+  // =========================
+  // Recommended Products Fetch
+  // =========================
+  useEffect(() => {
+    axios
+      .get("http://localhost:5000/phones")
+      .then((res) => {
+        setRecommendedProducts(res.data?.phones?.slice(0, 4) || []);
+      })
+      .catch(() => {
+        setRecommendedProducts([]);
+      });
+  }, []);
+
+  // =========================
+  // Coupon Apply Function
+  // =========================
+  const handleCouponApply = () => {
+    const code = couponCode.trim().toUpperCase();
+
+    if (code === "SAVE10") {
+      setDiscountAmount(subtotal * 0.1);
+
+      setAppliedCoupon("SAVE10");
+
+      toast.success("10% discount applied");
+    } else if (code === "SAVE20") {
+      setDiscountAmount(subtotal * 0.2);
+
+      setAppliedCoupon("SAVE20");
+
+      toast.success("20% discount applied");
+    } else {
+      setDiscountAmount(0);
+
+      setAppliedCoupon("");
+
+      toast.error("Invalid coupon code");
+    }
   };
 
-  // Decrease quantity
-  const decreaseQuantity = (id) => {
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item._id === id && item.quantity > 1
-          ? { ...item, quantity: item.quantity - 1 }
-          : item,
-      ),
-    );
+  // =========================
+  // Increase Quantity
+  // =========================
+  const handleIncrease = (id) => {
+    increaseMutation.mutate(id);
   };
 
-  // Remove item
-  const removeItem = (id) => {
-    setCartItems((prev) => prev.filter((item) => item._id !== id));
+  // =========================
+  // Decrease Quantity
+  // =========================
+  const handleDecrease = (id) => {
+    decreaseMutation.mutate(id);
   };
 
-  // Totals
-  const subtotal = useMemo(() => {
-    return cartItems.reduce(
-      (total, item) => total + item.discountPrice * item.quantity,
-      0,
+  // =========================
+  // Delete Product
+  // =========================
+  const handleDelete = (id) => {
+    Swal.fire({
+      title: "Remove Product?",
+      text: "This item will be deleted.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        deleteMutation.mutate(id);
+      }
+    });
+  };
+
+  // =========================
+  // Clear Cart
+  // =========================
+  const handleClearCart = () => {
+    Swal.fire({
+      title: "Clear Cart?",
+      text: "All products will be removed.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        clearCartMutation.mutate();
+      }
+    });
+  };
+
+  // =========================
+  // Save For Later
+  // =========================
+  const handleSaveForLater = (item) => {
+    const exists = savedProducts.find((product) => product._id === item._id);
+
+    if (exists) {
+      toast.error("Already Saved");
+
+      return;
+    }
+
+    setSavedProducts([...savedProducts, item]);
+
+    handleDelete(item._id);
+
+    toast.success("Moved To Saved For Later");
+  };
+  // =========================
+  // Loading UI
+  // =========================
+  if (isLoading) {
+    return (
+      <section className="max-w-7xl mx-auto px-4 py-10">
+        <div className="space-y-5">
+          <div className="skeleton h-40"></div>
+          <div className="skeleton h-40"></div>
+          <div className="skeleton h-40"></div>
+        </div>
+      </section>
     );
-  }, [cartItems]);
+  }
 
-  const shipping = subtotal > 0 ? 5 : 0;
-  const total = subtotal + shipping;
+  // =========================
+  // Empty Cart UI
+  // =========================
+  if (cart.length === 0) {
+    return (
+      <section className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <FaShoppingBag className="mx-auto text-8xl text-gray-400" />
 
-  return (
-    <section className="bg-base-200 min-h-screen py-10">
-      <div className="max-w-7xl mx-auto px-4">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <div>
-            <h1 className="text-4xl font-bold flex items-center gap-3">
-              <FaShoppingBag className="text-primary" />
-              Shopping Cart
-            </h1>
+          <h2 className="text-4xl font-bold mt-6">Your Cart Is Empty</h2>
 
-            <p className="text-gray-500 mt-2">
-              {cartItems.length} Items in your cart
-            </p>
-          </div>
+          <p className="text-gray-500 mt-3">
+            Looks like you haven't added anything yet.
+          </p>
 
-          <Link to="/" className="btn btn-outline">
-            <FaArrowLeft />
+          <Link to="/" className="btn btn-primary mt-8">
             Continue Shopping
           </Link>
         </div>
+      </section>
+    );
+  }
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Side */}
-          <div className="lg:col-span-2 space-y-6">
-            {cartItems.length === 0 ? (
-              <div className="card bg-base-100 shadow-xl">
-                <div className="card-body items-center text-center py-20">
-                  <FaShoppingBag className="text-6xl text-gray-400" />
-                  <h2 className="text-3xl font-bold mt-4">
-                    Your Cart is Empty
-                  </h2>
-                  <p className="text-gray-500">
-                    Add some products to start shopping.
-                  </p>
+  // =========================
+  // Main Return
+  // =========================
+  return (
+    <motion.section
+      initial={{
+        opacity: 0,
+        y: 30,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      transition={{
+        duration: 0.5,
+      }}
+      className="max-w-7xl mx-auto px-4 py-10"
+    >
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between gap-4 mb-10">
+        <div>
+          <h1 className="text-4xl font-bold">Shopping Cart</h1>
 
-                  <Link to="/" className="btn btn-primary mt-6">
-                    Shop Now
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              cartItems.map((item) => (
-                <div key={item._id} className="card bg-base-100 shadow-lg">
-                  <div className="card-body">
-                    <div className="flex flex-col md:flex-row gap-6">
-                      {/* Image */}
-                      <div className="w-full md:w-40">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-full h-40 object-contain"
-                        />
-                      </div>
+          <p className="text-gray-500 mt-2">{cart.length} Products</p>
+        </div>
 
-                      {/* Info */}
-                      <div className="flex-1">
-                        <h2 className="text-xl font-bold">{item.name}</h2>
+        <Link to="/" className="btn btn-outline">
+          <FaArrowLeft />
+          Continue Shopping
+        </Link>
+      </div>
 
-                        <p className="text-gray-500">Brand: {item.brand}</p>
+      {/* Main Grid */}
+      <div className="grid lg:grid-cols-3 gap-10">
+        {/* Left Side */}
+        <div className="lg:col-span-2 space-y-5">
+          {cart.map((item) => (
+            <motion.div
+              key={item._id}
+              whileHover={{
+                scale: 1.01,
+              }}
+              className="card bg-base-100 shadow-lg"
+            >
+              <div className="card-body">
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* Product Image */}
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="w-40 h-40 object-contain"
+                  />
 
-                        <div className="mt-4 flex items-center gap-3">
-                          <span className="text-2xl font-bold text-primary">
-                            ${item.discountPrice}
-                          </span>
+                  {/* Product Info */}
+                  <div className="flex-1">
+                    {/* Name */}
+                    <h2 className="font-bold text-2xl">{item.name}</h2>
 
-                          <span className="line-through text-gray-400">
-                            ${item.price}
-                          </span>
-                        </div>
+                    {/* Brand */}
+                    <p className="text-primary mt-2">{item.brand}</p>
 
-                        {/* Quantity */}
-                        <div className="flex items-center gap-4 mt-6">
-                          <div className="join">
-                            <button
-                              className="btn join-item"
-                              onClick={() => decreaseQuantity(item._id)}
-                            >
-                              <FaMinus />
-                            </button>
+                    {/* Price */}
+                    <div className="text-2xl font-bold mt-4">
+                      ৳{item.discountPrice}
+                    </div>
 
-                            <button className="btn join-item">
-                              {item.quantity}
-                            </button>
+                    {/* Quantity Control */}
+                    <div className="flex items-center gap-3 mt-6">
+                      {/* Minus */}
+                      <button
+                        className="btn btn-outline"
+                        onClick={() => handleDecrease(item._id)}
+                      >
+                        <FaMinus />
+                      </button>
 
-                            <button
-                              className="btn join-item"
-                              onClick={() => increaseQuantity(item._id)}
-                            >
-                              <FaPlus />
-                            </button>
-                          </div>
+                      <span className="font-bold text-lg">{item.quantity}</span>
 
-                          <button
-                            onClick={() => removeItem(item._id)}
-                            className="btn btn-error btn-outline"
-                          >
-                            <FaTrash />
-                            Remove
-                          </button>
-                        </div>
-                      </div>
+                      {/* Plus */}
+                      <button
+                        className="btn btn-outline"
+                        onClick={() => handleIncrease(item._id)}
+                      >
+                        <FaPlus />
+                      </button>
+                    </div>
 
-                      {/* Total */}
-                      <div className="flex items-center">
-                        <h2 className="text-2xl font-bold text-primary">
-                          ${(item.discountPrice * item.quantity).toFixed(2)}
-                        </h2>
-                      </div>
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-3 mt-6">
+                      {/* Delete */}
+                      <button
+                        onClick={() => handleDelete(item._id)}
+                        className="btn btn-error btn-sm"
+                      >
+                        <FaTrash />
+                        Delete
+                      </button>
+
+                      {/* Save For Later */}
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => handleSaveForLater(item)}
+                      >
+                        <FaHeart />
+                        Save For Later
+                      </button>
                     </div>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+        {/* Right Side */}
+        <div>
+          {/* Sticky Payment Summary */}
+          <div className="card bg-base-100 shadow-xl sticky top-24">
+            <div className="card-body">
+              <h2 className="text-2xl font-bold">Order Summary</h2>
 
-          {/* Right Side */}
-          <div>
-            <div className="card bg-base-100 shadow-xl sticky top-24">
-              <div className="card-body">
-                <h2 className="text-2xl font-bold">Order Summary</h2>
+              {/* Coupon */}
+              <div className="mt-6">
+                <h3 className="font-semibold mb-3">Coupon Code</h3>
 
-                {/* Coupon */}
-                <div className="mt-5">
-                  <label className="font-medium flex items-center gap-2 mb-2">
-                    <FaTag />
-                    Coupon Code
-                  </label>
+                <div className="join w-full">
+                  <input
+                    type="text"
+                    className="input input-bordered join-item flex-1"
+                    placeholder="Enter coupon"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                  />
 
-                  <div className="join w-full">
-                    <input
-                      type="text"
-                      placeholder="Enter coupon"
-                      className="input input-bordered join-item w-full"
-                    />
+                  <button
+                    className="btn btn-primary join-item"
+                    onClick={handleCouponApply}
+                  >
+                    Apply
+                  </button>
+                </div>
 
-                    <button className="btn btn-primary join-item">Apply</button>
-                  </div>
+                {appliedCoupon && (
+                  <p className="text-success mt-3">
+                    Coupon Applied: {appliedCoupon}
+                  </p>
+                )}
+              </div>
+
+              {/* Free Shipping Progress */}
+              <div className="mt-8">
+                <p className="text-sm mb-3">
+                  {remainingAmount > 0
+                    ? `Spend ৳${remainingAmount} more to get FREE shipping`
+                    : "Congratulations! FREE Shipping unlocked"}
+                </p>
+
+                <progress
+                  className="progress progress-success w-full"
+                  value={progressPercentage}
+                  max="100"
+                ></progress>
+              </div>
+
+              {/* Payment Summary */}
+              <div className="space-y-5 mt-8">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+
+                  <span>৳{subtotal}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Shipping</span>
+
+                  <span>৳{shipping}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Discount</span>
+
+                  <span>-৳{discountAmount}</span>
                 </div>
 
                 <div className="divider"></div>
 
-                {/* Summary */}
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
-                  </div>
+                <div className="flex justify-between text-2xl font-bold">
+                  <span>Total</span>
 
-                  <div className="flex justify-between">
-                    <span>Shipping</span>
-                    <span>${shipping.toFixed(2)}</span>
-                  </div>
+                  <span className="text-primary">৳{finalTotal}</span>
+                </div>
+              </div>
 
-                  <div className="flex justify-between text-xl font-bold">
-                    <span>Total</span>
-                    <span className="text-primary">${total.toFixed(2)}</span>
-                  </div>
+              {/* Checkout Button */}
+              <button
+                className="btn btn-primary w-full mt-8"
+                onClick={() => navigate("/checkout")}
+              >
+                Proceed To Checkout
+              </button>
+
+              {/* Clear Cart */}
+              <button
+                className="btn btn-error w-full mt-3"
+                onClick={handleClearCart}
+              >
+                Clear Cart
+              </button>
+
+              <div className="divider"></div>
+
+              {/* Features */}
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <FaTruck className="text-success" />
+                  Fast Delivery
                 </div>
 
-                <button className="btn btn-primary mt-6 w-full">
-                  Proceed To Checkout
-                </button>
-
-                <div className="divider"></div>
-
-                {/* Security */}
-                <div className="space-y-4 text-sm">
-                  <div className="flex items-center gap-3">
-                    <FaTruck className="text-success" />
-                    Estimated Delivery:
-                    {moment().add(3, "days").format("DD MMM YYYY")}
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <FaLock className="text-primary" />
-                    Secure SSL Protected Checkout
-                  </div>
+                <div className="flex items-center gap-3">
+                  <FaLock className="text-primary" />
+                  Secure Checkout
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </section>
+
+      {/* Saved Products */}
+      {savedProducts.length > 0 && (
+        <div className="mt-20">
+          <h2 className="text-3xl font-bold mb-8">Saved For Later</h2>
+
+          <div className="grid md:grid-cols-2 gap-5">
+            {savedProducts.map((product) => (
+              <div key={product._id} className="card bg-base-100 shadow-lg">
+                <div className="card-body">
+                  <h2 className="font-bold">{product.name}</h2>
+
+                  <p className="text-primary">৳{product.discountPrice}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recommended Products */}
+      <div className="mt-20">
+        <h2 className="text-3xl font-bold mb-8">Recommended Products</h2>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {recommendedProducts.map((product) => (
+            <div key={product._id} className="card bg-base-100 shadow-lg">
+              <figure>
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="h-48 object-contain p-5"
+                />
+              </figure>
+
+              <div className="card-body">
+                <h2 className="line-clamp-2 font-bold">{product.name}</h2>
+
+                <p className="text-primary font-bold">
+                  ৳{product.discountPrice}
+                </p>
+
+                <Link
+                  to={`/phone/${product.slug}`}
+                  className="btn btn-primary btn-sm mt-3"
+                >
+                  View Details
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.section>
   );
 };
 

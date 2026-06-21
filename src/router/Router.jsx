@@ -28,6 +28,8 @@ import AddProduct from "../Components/Admin/AddProduct";
 import AdminRoute from "../Components/Admin/AdminRoute";
 import AllUsers from "../Components/Admin/AllUsers";
 import AddToCart from "../Components/Shared/AddToCart";
+import Checkout from "../Components/Shared/Checkout";
+import OrderDetails from "../Components/Users/OrderDetails";
 
 const router = createBrowserRouter([
   {
@@ -68,6 +70,7 @@ const router = createBrowserRouter([
         path: "/accessories/:slug",
         element: <AccessoriesDetails></AccessoriesDetails>,
       },
+
       {
         path: "/phone/:slug",
         element: <PhoneDetails></PhoneDetails>,
@@ -105,6 +108,10 @@ const router = createBrowserRouter([
       {
         path: "/cart",
         element: <AddToCart></AddToCart>,
+      },
+      {
+        path: "/checkout",
+        element: <Checkout></Checkout>,
       },
     ],
   },
@@ -144,6 +151,10 @@ const router = createBrowserRouter([
       {
         path: "my-orders",
         element: <MyOrders />,
+      },
+      {
+        path: "orders-detail/:id",
+        element: <OrderDetails />,
       },
       {
         path: "AddProduct",

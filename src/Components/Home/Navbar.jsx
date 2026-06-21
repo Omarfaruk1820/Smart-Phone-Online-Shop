@@ -1,27 +1,34 @@
 import { useContext, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+
 import {
   FaBars,
   FaTimes,
   FaShoppingCart,
   FaSignOutAlt,
-  FaUserShield,
-  FaUserCircle,
-  FaStore,
-  FaTachometerAlt,
+  FaMoon,
+  FaSun,
+  FaHome,
+  FaMobileAlt,
+  FaUser,
+  FaList,
 } from "react-icons/fa";
 
+import useCartContext from "../Hook/useCart";
 import { AuthContext } from "../Auth/AuthProvider";
 
 const Navbar = () => {
   const navigate = useNavigate();
+
   const [isOpen, setIsOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+
+  const { cartCount } = useCartContext();
 
   const { user, role, loading, logOutUser } = useContext(AuthContext);
 
   const isAdmin = role === "admin";
-
-  const navbarTheme = isAdmin ? "bg-indigo-600" : "bg-emerald-600";
 
   const userName =
     user?.displayName || user?.name || user?.email?.split("@")[0] || "User";
@@ -30,17 +37,43 @@ const Navbar = () => {
     user?.photoURL ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(
       userName,
-    )}&background=random&size=256`;
+    )}&background=random`;
+  const closeMobileMenu = () => {
+    setIsOpen(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logOutUser();
+
+      navigate("/");
+
+      closeMobileMenu();
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const toggleTheme = () => {
+    setDarkMode(!darkMode);
+
+    document.documentElement.setAttribute(
+      "data-theme",
+      darkMode ? "light" : "dark",
+    );
+  };
 
   const navLinks = [
     {
       name: "Home",
       path: "/",
     },
+
     {
       name: "All Mobiles",
-      path: "/allbrands",
+      path: "/phones",
     },
+
     {
       name: "Accessories",
       path: "/accessories",
@@ -64,16 +97,6 @@ const Navbar = () => {
         ]
       : []),
 
-    ...(user
-      ? [
-          {
-            name: "Cart",
-            path: "/cart",
-            icon: <FaShoppingCart />,
-          },
-        ]
-      : []),
-
     {
       name: "Contact",
       path: "/contact",
@@ -85,157 +108,104 @@ const Navbar = () => {
     },
   ];
 
-  const closeMobileMenu = () => {
-    setIsOpen(false);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logOutUser();
-      navigate("/");
-      closeMobileMenu();
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   if (loading) {
     return (
-      <div className="flex justify-center py-10">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
+      <div className="navbar bg-base-100 shadow">
+        <div className="skeleton h-10 w-full"></div>
       </div>
     );
   }
-
   return (
-    <header className="sticky top-0 z-50 bg-base-100 border-b shadow-md">
-      <div className="navbar max-w-7xl mx-auto px-4">
-        {/* Logo */}
-        <div className="navbar-start">
-          <Link
-            to="/"
-            className={`px-4 py-2 rounded-xl text-white font-bold text-xl md:text-2xl ${navbarTheme}`}
-          >
-            <span className="flex items-center gap-2">
-              <FaStore />
+    <>
+      <motion.header
+        initial={{ y: -60 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="sticky top-0 z-50 bg-base-100 shadow-md"
+      >
+        <div className="navbar max-w-7xl mx-auto">
+          {/* LOGO */}
+          <div className="navbar-start">
+            <Link to="/" className="text-2xl font-bold text-primary">
               MobileHub
-            </span>
-          </Link>
-        </div>
+            </Link>
+          </div>
 
-        {/* Desktop Menu */}
-        <div className="navbar-center hidden lg:flex">
-          <ul className="menu menu-horizontal gap-1">
-            {navLinks.map((link) => (
-              <li key={link.path}>
-                <NavLink
-                  to={link.path}
-                  className={({ isActive }) =>
-                    `rounded-xl px-4 py-2 duration-300 ${
+          {/* DESKTOP MENU */}
+          <div className="navbar-center hidden lg:flex">
+            <ul className="menu menu-horizontal gap-2">
+              {navLinks.map((link) => (
+                <li key={link.path}>
+                  <NavLink
+                    to={link.path}
+                    className={({ isActive }) =>
                       isActive
-                        ? `${navbarTheme} text-white`
-                        : "hover:bg-base-200"
-                    }`
-                  }
-                >
-                  <span className="flex items-center gap-2">
-                    {link.icon}
+                        ? "bg-primary text-white rounded-xl"
+                        : "rounded-xl hover:bg-base-200"
+                    }
+                  >
                     {link.name}
-                  </span>
-                </NavLink>
+                  </NavLink>
+                </li>
+              ))}
+
+              {/* CATEGORY DROPDOWN */}
+              <li>
+                <details>
+                  <summary>Categories</summary>
+
+                  <ul className="bg-base-100 rounded-box shadow">
+                    <li>
+                      <Link to="/phone/samsung">Samsung</Link>
+                    </li>
+
+                    <li>
+                      <Link to="/brand/apple">Apple</Link>
+                    </li>
+
+                    <li>
+                      <Link to="/brand/xiaomi">Xiaomi</Link>
+                    </li>
+
+                    <li>
+                      <Link to="/brand/realme">Realme</Link>
+                    </li>
+                  </ul>
+                </details>
               </li>
-            ))}
-          </ul>
-        </div>
+            </ul>
+          </div>
+          <div className="navbar-end gap-3">
+            {/* Dark Mode */}
+            <button onClick={toggleTheme} className="btn btn-circle">
+              {darkMode ? <FaSun /> : <FaMoon />}
+            </button>
 
-        {/* Right Side */}
-        <div className="navbar-end gap-3">
-          {!user ? (
-            <>
-              <Link
-                to="/login"
-                className="btn btn-outline btn-sm hidden sm:flex"
-              >
-                Login
+            {/* CART */}
+            {user && (
+              <Link to="/cart" className="relative btn btn-ghost">
+                <FaShoppingCart size={20} />
+
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-white text-xs px-2 rounded-full">
+                    {cartCount}
+                  </span>
+                )}
               </Link>
+            )}
 
-              <Link
-                to="/register"
-                className={`btn btn-sm border-none text-white ${navbarTheme}`}
-              >
-                Register
-              </Link>
-            </>
-          ) : (
-            <>
-              {/* User Info */}
-              <div className="hidden lg:flex flex-col text-right">
-                <h4 className="font-semibold text-sm">{userName}</h4>
-
-                <p className="text-xs text-gray-500">{user?.email}</p>
-
-                <span
-                  className={`text-xs font-medium ${
-                    role === "admin"
-                      ? "text-purple-600"
-                      : role === "seller"
-                        ? "text-orange-500"
-                        : "text-green-600"
-                  }`}
-                >
-                  {role?.toUpperCase()}
-                </span>
-              </div>
-
-              {/* Profile Dropdown */}
+            {/* USER */}
+            {user ? (
               <div className="dropdown dropdown-end">
-                <label tabIndex={0} className="cursor-pointer">
+                <label tabIndex={0}>
                   <img
                     src={userPhoto}
-                    alt="user"
-                    className="w-11 h-11 rounded-full object-cover border-2 border-primary"
+                    alt=""
+                    className="w-10 h-10 rounded-full cursor-pointer border"
                   />
                 </label>
 
-                <ul
-                  tabIndex={0}
-                  className="dropdown-content menu p-4 shadow bg-base-100 rounded-box w-72 z-[100]"
-                >
-                  <div className="border-b pb-3 mb-3">
-                    <h3 className="font-bold">{userName}</h3>
-
-                    <p className="text-sm text-gray-500 break-all">
-                      {user?.email}
-                    </p>
-
-                    <span
-                      className={`badge mt-2 gap-2 ${
-                        role === "admin"
-                          ? "badge-secondary"
-                          : role === "seller"
-                            ? "badge-warning"
-                            : "badge-success"
-                      }`}
-                    >
-                      {role === "admin" ? (
-                        <>
-                          <FaUserShield />
-                          Admin
-                        </>
-                      ) : role === "seller" ? (
-                        <>
-                          <FaTachometerAlt />
-                          Seller
-                        </>
-                      ) : (
-                        <>
-                          <FaUserCircle />
-                          Customer
-                        </>
-                      )}
-                    </span>
-                  </div>
-
+                <ul className="dropdown-content menu p-3 shadow bg-base-100 rounded-box w-60">
                   <li>
                     <Link to="/dashboard">Dashboard</Link>
                   </li>
@@ -254,107 +224,80 @@ const Navbar = () => {
                   </li>
                 </ul>
               </div>
-            </>
-          )}
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="btn btn-ghost lg:hidden"
-          >
-            {isOpen ? <FaTimes size={22} /> : <FaBars size={22} />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      <div
-        className={`lg:hidden overflow-hidden transition-all duration-300 ${
-          isOpen ? "max-h-[1000px]" : "max-h-0"
-        }`}
-      >
-        <div className="bg-base-100 border-t px-4 py-5">
-          {user && (
-            <div className="flex items-center gap-4 bg-base-200 p-4 rounded-2xl mb-5">
-              <img
-                src={userPhoto}
-                alt=""
-                className="w-14 h-14 rounded-full border-2 border-primary"
-              />
-
-              <div>
-                <h3 className="font-semibold">{userName}</h3>
-
-                <p className="text-xs text-gray-500 break-all">{user?.email}</p>
-
-                <span
-                  className={`badge mt-2 ${
-                    role === "admin"
-                      ? "badge-secondary"
-                      : role === "seller"
-                        ? "badge-warning"
-                        : "badge-success"
-                  }`}
-                >
-                  {role || "customer"}
-                </span>
-              </div>
-            </div>
-          )}
-
-          <ul className="space-y-2">
-            {navLinks.map((link) => (
-              <li key={link.path}>
-                <NavLink
-                  to={link.path}
-                  onClick={closeMobileMenu}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-4 py-3 rounded-xl duration-300 ${
-                      isActive
-                        ? `${navbarTheme} text-white`
-                        : "hover:bg-base-200"
-                    }`
-                  }
-                >
-                  {link.icon}
-                  {link.name}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-5">
-            {!user ? (
-              <div className="grid grid-cols-2 gap-3">
-                <Link
-                  to="/login"
-                  onClick={closeMobileMenu}
-                  className="btn btn-outline"
-                >
+            ) : (
+              <>
+                <Link to="/login" className="btn btn-outline btn-sm">
                   Login
                 </Link>
 
-                <Link
-                  to="/register"
-                  onClick={closeMobileMenu}
-                  className={`btn text-white border-none ${navbarTheme}`}
-                >
+                <Link to="/register" className="btn btn-primary btn-sm">
                   Register
                 </Link>
-              </div>
-            ) : (
-              <button
-                onClick={handleLogout}
-                className="btn btn-error text-white w-full"
+              </>
+            )}
+
+            {/* MOBILE MENU BUTTON */}
+            <button
+              className="btn btn-ghost lg:hidden"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {isOpen ? <FaTimes /> : <FaBars />}
+            </button>
+          </div>
+        </div>
+
+        {/* MOBILE MENU */}
+        <div
+          className={`lg:hidden overflow-hidden transition-all duration-300 ${
+            isOpen ? "max-h-screen" : "max-h-0"
+          }`}
+        >
+          <div className="bg-base-100 border-t p-4 space-y-3">
+            {navLinks.map((link) => (
+              <NavLink
+                key={link.path}
+                to={link.path}
+                onClick={closeMobileMenu}
+                className="block px-4 py-3 rounded-lg hover:bg-base-200"
               >
-                <FaSignOutAlt />
+                {link.name}
+              </NavLink>
+            ))}
+
+            {user && (
+              <button onClick={handleLogout} className="btn btn-error w-full">
                 Logout
               </button>
             )}
           </div>
         </div>
+      </motion.header>
+
+      {/* MOBILE BOTTOM NAV */}
+      <div className="fixed bottom-0 left-0 right-0 bg-base-100 border-t lg:hidden z-50">
+        <div className="grid grid-cols-5 text-center py-2">
+          <Link to="/">
+            <FaHome className="mx-auto" />
+          </Link>
+
+          <Link to="/phones">
+            <FaMobileAlt className="mx-auto" />
+          </Link>
+
+          <Link to="/categories">
+            <FaList className="mx-auto" />
+          </Link>
+
+          <Link to="/cart">
+            <FaShoppingCart className="mx-auto" />
+          </Link>
+
+          <Link to="/dashboard">
+            <FaUser className="mx-auto" />
+          </Link>
+        </div>
       </div>
-    </header>
+    </>
   );
 };
 

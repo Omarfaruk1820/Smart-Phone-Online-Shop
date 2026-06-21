@@ -1,15 +1,21 @@
-// Accessories.jsx (PART 1)
-
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import toast, { Toaster } from "react-hot-toast";
 
 import { FaSearch, FaShoppingCart, FaStar } from "react-icons/fa";
+
+import { AuthContext } from "../Auth/AuthProvider";
+import useCart from "../Hook/useCart";
 
 const ITEMS_PER_PAGE = 12;
 
 const Accessories = () => {
   const navigate = useNavigate();
+
+  const { user } = useContext(AuthContext);
+
+  const { refetch } = useCart();
 
   const [products, setProducts] = useState([]);
 
@@ -24,9 +30,9 @@ const Accessories = () => {
 
   const [totalPages, setTotalPages] = useState(1);
 
-  // -------------------------
-  // FETCH FROM API (AXIOS)
-  // -------------------------
+  // =====================
+  // FETCH ACCESSORIES
+  // =====================
   useEffect(() => {
     const fetchAccessories = async () => {
       try {
@@ -51,27 +57,53 @@ const Accessories = () => {
     fetchAccessories();
   }, [currentPage]);
 
-  // reset page on filter change
   useEffect(() => {
     setCurrentPage(1);
   }, [search, activeCategory, sort]);
 
-  // -------------------------
-  // NORMALIZE TEXT
-  // -------------------------
+  // =====================
+  // ADD TO CART
+  // =====================
+  const handleAddCart = async (item) => {
+    if (!user) {
+      toast.error("Please login first");
+      navigate("/login");
+      return;
+    }
+
+    const cartItem = {
+      productId: item._id,
+      name: item.name,
+      brand: item.brand,
+      image: item.image,
+      price: item.oldPrice || item.price,
+      discountPrice: item.price,
+      quantity: 1,
+      userEmail: user.email,
+    };
+
+    try {
+      const res = await axios.post("http://localhost:5000/cart", cartItem);
+
+      if (res.data.success) {
+        refetch();
+
+        toast.success(`${item.name} added successfully 🛒`, {
+          position: "top-right",
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to add product");
+    }
+  };
   const normalize = (str) => str?.toLowerCase().replace(/\s+/g, " ").trim();
 
-  // -------------------------
-  // CATEGORY LIST
-  // -------------------------
   const categories = useMemo(() => {
     const list = products.map((p) => p.category);
+
     return ["All", ...new Set(list)];
   }, [products]);
 
-  // -------------------------
-  // FILTER + SORT
-  // -------------------------
   const filteredProducts = useMemo(() => {
     const q = normalize(search);
 
@@ -86,51 +118,63 @@ const Accessories = () => {
       return categoryMatch && searchMatch;
     });
 
-    if (sort === "low") result.sort((a, b) => a.price - b.price);
+    if (sort === "low") {
+      result.sort((a, b) => a.price - b.price);
+    }
 
-    if (sort === "high") result.sort((a, b) => b.price - a.price);
+    if (sort === "high") {
+      result.sort((a, b) => b.price - a.price);
+    }
 
-    if (sort === "rating") result.sort((a, b) => b.rating - a.rating);
+    if (sort === "rating") {
+      result.sort((a, b) => b.rating - a.rating);
+    }
 
-    if (sort === "newest")
+    if (sort === "newest") {
       result.sort(
         (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
       );
+    }
 
     return result;
   }, [products, search, activeCategory, sort]);
 
-  // -------------------------
-  // LOADING UI
-  // -------------------------
   if (loading) {
-    return <div className="text-center py-20">Loading Accessories...</div>;
+    return (
+      <div className="max-w-7xl mx-auto py-10 px-4">
+        <div className="grid md:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="skeleton h-80 rounded-2xl"></div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
-  // -------------------------
-  // ERROR UI
-  // -------------------------
   if (error) {
     return <div className="text-center text-red-500 py-20">{error}</div>;
   }
-  // Accessories.jsx (PART 2)
 
   return (
     <section className="max-w-7xl mx-auto px-4 py-10">
       {/* HEADER */}
-      <h1 className="text-3xl md:text-4xl font-bold text-center mb-6">
-        Mobile Accessories
-      </h1>
+      <div className="text-center mb-10">
+        <h2 className="text-3xl md:text-5xl font-bold">Mobile Accessories</h2>
+
+        <p className="text-gray-500 mt-3">
+          Premium accessories for smartphones
+        </p>
+      </div>
 
       {/* SEARCH */}
       <div className="flex justify-center mb-6">
         <div className="relative w-full md:w-1/2">
-          <FaSearch className="absolute top-3 left-3 text-gray-400" />
+          <FaSearch className="absolute top-4 left-4 text-gray-400" />
 
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="input input-bordered w-full pl-10"
+            className="input input-bordered w-full pl-12"
             placeholder="Search accessories..."
           />
         </div>
@@ -156,27 +200,27 @@ const Accessories = () => {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          className="select select-bordered w-full md:w-60"
+          className="select select-bordered w-full md:w-64"
         >
           <option value="newest">Newest</option>
-          <option value="low">Price: Low → High</option>
-          <option value="high">Price: High → Low</option>
+          <option value="low">Price Low → High</option>
+          <option value="high">Price High → Low</option>
           <option value="rating">Top Rating</option>
         </select>
       </div>
-
-      {/* PRODUCTS GRID */}
       {filteredProducts.length === 0 ? (
-        <p className="text-center text-gray-500 py-10">No products found</p>
+        <div className="text-center py-20 text-gray-500">No products found</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredProducts.map((item) => (
             <div
               key={item._id}
-              onClick={() => navigate(`/accessories/${item.slug}`)}
-              className="card bg-base-100 shadow-lg hover:shadow-2xl cursor-pointer transition"
+              className="card bg-base-100 shadow-lg hover:shadow-2xl transition duration-300"
             >
-              <figure className="p-4">
+              <figure
+                className="p-4 cursor-pointer"
+                onClick={() => navigate(`/accessories/${item.slug}`)}
+              >
                 <img
                   src={item.image}
                   alt={item.name}
@@ -185,25 +229,26 @@ const Accessories = () => {
               </figure>
 
               <div className="card-body">
-                <h2 className="card-title text-sm">{item.name}</h2>
+                <h2 className="card-title text-sm line-clamp-2">{item.name}</h2>
 
                 <p className="text-xs text-gray-500">{item.brand}</p>
 
-                <div className="flex items-center gap-1 text-yellow-500">
+                <div className="flex items-center gap-2 text-warning">
                   <FaStar />
                   {item.rating}
                 </div>
 
                 <div className="flex gap-2">
                   <span className="text-primary font-bold">৳{item.price}</span>
+
                   <span className="line-through text-gray-400 text-sm">
                     ৳{item.oldPrice}
                   </span>
                 </div>
 
                 <button
-                  onClick={(e) => e.stopPropagation()}
-                  className="btn btn-primary btn-sm mt-2"
+                  onClick={() => handleAddCart(item)}
+                  className="btn btn-primary mt-3"
                 >
                   <FaShoppingCart />
                   Add To Cart
@@ -216,7 +261,7 @@ const Accessories = () => {
 
       {/* PAGINATION */}
       {totalPages > 1 && (
-        <div className="flex justify-center mt-10 gap-2 flex-wrap">
+        <div className="flex justify-center gap-2 mt-10 flex-wrap">
           <button
             className="btn btn-sm"
             disabled={currentPage === 1}
@@ -225,15 +270,15 @@ const Accessories = () => {
             Prev
           </button>
 
-          {Array.from({ length: totalPages }).map((_, i) => (
+          {Array.from({ length: totalPages }).map((_, index) => (
             <button
-              key={i}
-              onClick={() => setCurrentPage(i + 1)}
+              key={index}
+              onClick={() => setCurrentPage(index + 1)}
               className={`btn btn-sm ${
-                currentPage === i + 1 ? "btn-primary" : "btn-outline"
+                currentPage === index + 1 ? "btn-primary" : "btn-outline"
               }`}
             >
-              {i + 1}
+              {index + 1}
             </button>
           ))}
 
@@ -246,6 +291,32 @@ const Accessories = () => {
           </button>
         </div>
       )}
+      <Toaster
+        position="top-right"
+        gutter={12}
+        containerStyle={{
+          top: 20,
+          right: 20,
+        }}
+        toastOptions={{
+          duration: 3000,
+          success: {
+            style: {
+              background: "#10B981",
+              color: "#fff",
+              borderRadius: "14px",
+              fontWeight: "600",
+            },
+          },
+          error: {
+            style: {
+              background: "#EF4444",
+              color: "#fff",
+              borderRadius: "14px",
+            },
+          },
+        }}
+      />
     </section>
   );
 };

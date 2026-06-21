@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useContext, useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
+import toast, { Toaster } from "react-hot-toast";
 
 import {
   FaStar,
@@ -12,14 +13,24 @@ import {
   FaUndo,
 } from "react-icons/fa";
 
+import { AuthContext } from "../Auth/AuthProvider";
+import useCart from "../Hook/useCart";
+
 const FlashSaleDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+
+  const { user } = useContext(AuthContext);
+  const { refetch } = useCart();
 
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
 
+  // ====================
+  // FETCH PRODUCT
+  // ====================
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -31,7 +42,7 @@ const FlashSaleDetails = () => {
 
         setProduct(res.data.product);
         setRelated(res.data.related || []);
-      } catch (err) {
+      } catch (error) {
         setProduct(null);
       } finally {
         setLoading(false);
@@ -41,10 +52,53 @@ const FlashSaleDetails = () => {
     fetchProduct();
   }, [id]);
 
+  // ====================
+  // ADD TO CART
+  // ====================
+  const handleAddToCart = async () => {
+    if (!user) {
+      toast.error("Please login first");
+      navigate("/login");
+      return;
+    }
+
+    const cartItem = {
+      productId: product._id,
+      name: product.name,
+      brand: product.brand,
+      image: product.image,
+      price: product.price,
+      discountPrice: product.discountPrice,
+      quantity,
+      userEmail: user.email,
+    };
+
+    try {
+      const res = await axios.post("http://localhost:5000/cart", cartItem);
+
+      if (res.data.success) {
+        refetch();
+
+        toast.success(`${product.name} added successfully 🛒`, {
+          position: "top-right",
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to add product", error);
+    }
+  };
+
+  // ====================
+  // BUY NOW
+  // ====================
+  const handleBuyNow = async () => {
+    await handleAddToCart();
+    navigate("/checkout");
+  };
   if (loading) {
     return (
-      <div className="text-center py-20">
-        <span className="loading loading-spinner text-primary"></span>
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="skeleton h-[500px] w-full rounded-2xl"></div>
       </div>
     );
   }
@@ -52,8 +106,9 @@ const FlashSaleDetails = () => {
   if (!product) {
     return (
       <div className="text-center py-20">
-        <h2 className="text-2xl font-bold">Product Not Found</h2>
-        <Link to="/flash-sale" className="btn btn-primary mt-4">
+        <h2 className="text-4xl font-bold">Product Not Found</h2>
+
+        <Link to="/flash-sale" className="btn btn-primary mt-6">
           Back To Flash Sale
         </Link>
       </div>
@@ -66,29 +121,30 @@ const FlashSaleDetails = () => {
     product.stock > 0 ? (product.sold / product.stock) * 100 : 0;
 
   return (
-    <section className="max-w-7xl mx-auto px-4 py-10">
+    <section className="max-w-7xl mx-auto px-4 py-8">
       {/* Breadcrumb */}
       <div className="text-sm breadcrumbs mb-6">
         <ul>
           <li>
             <Link to="/">Home</Link>
           </li>
+
           <li>
             <Link to="/flash-sale">Flash Sale</Link>
           </li>
+
           <li>{product.name}</li>
         </ul>
       </div>
 
-      {/* MAIN CARD */}
-      <div className="card bg-base-100 shadow-xl border">
-        <div className="grid lg:grid-cols-2 gap-10 p-6">
+      <div className="card bg-base-100 shadow-2xl border">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 p-6">
           {/* IMAGE */}
-          <div className="bg-base-200 rounded-2xl p-6 flex justify-center">
+          <div className="bg-base-200 rounded-3xl p-6 flex justify-center items-center">
             <img
               src={product.image}
               alt={product.name}
-              className="h-[420px] object-contain"
+              className="w-full max-h-[450px] object-contain"
             />
           </div>
 
@@ -96,17 +152,19 @@ const FlashSaleDetails = () => {
           <div>
             <div className="badge badge-error mb-4">Flash Sale</div>
 
-            <h1 className="text-3xl font-bold">{product.name}</h1>
+            <h1 className="text-2xl md:text-4xl font-bold">{product.name}</h1>
 
-            <p className="text-gray-500">Brand: {product.brand}</p>
+            <p className="text-gray-500 mt-2">Brand: {product.brand}</p>
 
-            <div className="flex items-center gap-2 text-warning mt-2">
-              <FaStar /> {product.rating}
+            <div className="flex items-center gap-2 text-warning mt-4">
+              <FaStar />
+              <span>{product.rating}</span>
+
               <span className="text-gray-500">({product.totalReviews})</span>
             </div>
 
             {/* PRICE */}
-            <div className="mt-4 flex gap-4 items-center">
+            <div className="flex flex-wrap items-center gap-4 mt-6">
               <span className="text-4xl font-bold text-primary">
                 ৳{product.discountPrice}
               </span>
@@ -115,55 +173,61 @@ const FlashSaleDetails = () => {
                 ৳{product.price}
               </span>
 
-              <span className="badge badge-error">
+              <div className="badge badge-error">
                 -{product.discountPercentage}%
-              </span>
+              </div>
             </div>
 
-            <div className="alert alert-success mt-4">Save ৳{saveAmount}</div>
+            <div className="alert alert-success mt-5">Save ৳{saveAmount}</div>
 
             {/* STOCK */}
             <progress
-              className="progress progress-error w-full mt-4"
+              className="progress progress-error w-full mt-5"
               value={stockPercent}
               max="100"
-            />
+            ></progress>
 
             {/* QUANTITY */}
-            <input
-              type="number"
-              value={quantity}
-              min="1"
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              className="input input-bordered w-24 mt-5"
-            />
+            <div className="mt-6">
+              <input
+                type="number"
+                min="1"
+                value={quantity}
+                onChange={(e) => setQuantity(Number(e.target.value))}
+                className="input input-bordered w-24"
+              />
+            </div>
 
             {/* BUTTONS */}
-            <div className="flex gap-3 mt-5">
-              <button className="btn btn-primary flex-1">
-                <FaShoppingCart /> Add To Cart
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-6">
+              <button onClick={handleAddToCart} className="btn btn-primary">
+                <FaShoppingCart />
+                Add To Cart
               </button>
 
-              <button className="btn btn-secondary flex-1">
-                <FaBolt /> Buy Now
+              <button onClick={handleBuyNow} className="btn btn-secondary">
+                <FaBolt />
+                Buy Now
               </button>
 
               <button className="btn btn-outline">
                 <FaHeart />
               </button>
             </div>
-
             {/* SERVICES */}
-            <div className="mt-6 space-y-2 text-sm">
-              <div className="flex gap-2">
-                <FaTruck /> Free Delivery
+            <div className="mt-8 space-y-3">
+              <div className="flex gap-3">
+                <FaTruck className="text-primary" />
+                Free Delivery
               </div>
-              <div className="flex gap-2">
-                <FaShieldAlt />
+
+              <div className="flex gap-3">
+                <FaShieldAlt className="text-success" />
                 {product.warranty?.officialWarranty}
               </div>
-              <div className="flex gap-2">
-                <FaUndo />
+
+              <div className="flex gap-3">
+                <FaUndo className="text-warning" />
                 {product.warranty?.replacementPolicy}
               </div>
             </div>
@@ -172,36 +236,50 @@ const FlashSaleDetails = () => {
       </div>
 
       {/* SPECIFICATIONS */}
-      <div className="mt-10 card border p-6">
-        <h2 className="text-2xl font-bold mb-4">Specifications</h2>
+      <div className="card border mt-10 p-6">
+        <h2 className="text-3xl font-bold mb-6">Specifications</h2>
 
-        <table className="table w-full">
-          <tbody>
-            {Object.entries(product.specifications || {}).map(([k, v]) => (
-              <tr key={k}>
-                <td className="font-semibold capitalize">{k}</td>
-                <td>{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="table">
+            <tbody>
+              {Object.entries(product.specifications || {}).map(
+                ([key, value]) => (
+                  <tr key={key}>
+                    <td className="font-bold capitalize">{key}</td>
+
+                    <td>{value}</td>
+                  </tr>
+                ),
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* RELATED PRODUCTS */}
-      <div className="mt-10">
-        <h2 className="text-2xl font-bold mb-4">Related Products</h2>
+      <div className="mt-12">
+        <h2 className="text-3xl font-bold mb-6">Related Products</h2>
 
-        <div className="grid md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {related.map((item) => (
-            <div key={item._id} className="card border">
-              <img src={item.image} className="h-40 object-contain p-3" />
+            <div
+              key={item._id}
+              className="card bg-base-100 border hover:shadow-xl duration-300"
+            >
+              <img
+                src={item.image}
+                alt={item.name}
+                className="h-48 object-contain p-4"
+              />
 
-              <div className="p-3">
-                <h3 className="text-sm font-bold">{item.name}</h3>
+              <div className="card-body">
+                <h2 className="font-bold line-clamp-2">{item.name}</h2>
+
+                <p className="text-primary font-bold">৳{item.discountPrice}</p>
 
                 <Link
                   to={`/flash-sale/${item._id}`}
-                  className="btn btn-sm btn-primary mt-2"
+                  className="btn btn-primary btn-sm"
                 >
                   View Details
                 </Link>
@@ -210,6 +288,32 @@ const FlashSaleDetails = () => {
           ))}
         </div>
       </div>
+      <Toaster
+        position="top-right"
+        gutter={12}
+        containerStyle={{
+          top: 20,
+          right: 20,
+        }}
+        toastOptions={{
+          duration: 3000,
+          success: {
+            style: {
+              background: "#10B981",
+              color: "#fff",
+              borderRadius: "14px",
+              fontWeight: "600",
+            },
+          },
+          error: {
+            style: {
+              background: "#EF4444",
+              color: "#fff",
+              borderRadius: "14px",
+            },
+          },
+        }}
+      />
     </section>
   );
 };

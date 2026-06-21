@@ -1,8 +1,8 @@
-// PhoneDetails.jsx (PART 1)
-
-import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useContext, useEffect, useState } from "react";
 import axios from "axios";
+import toast, { Toaster } from "react-hot-toast";
+import { motion } from "framer-motion";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import {
   FaStar,
@@ -14,20 +14,29 @@ import {
   FaThLarge,
 } from "react-icons/fa";
 
+import useCart from "../Hook/useCart";
+import { AuthContext } from "../Auth/AuthProvider";
+
 const PhoneDetails = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
 
+  const { user } = useContext(AuthContext);
+  const { refetch } = useCart();
+
   const [phone, setPhone] = useState(null);
   const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState(null);
 
   // -------------------------
-  // FETCH SINGLE PHONE
+  // FETCH PHONE
   // -------------------------
   useEffect(() => {
+    if (!slug) return;
+
     const fetchPhone = async () => {
       try {
         setLoading(true);
@@ -50,12 +59,66 @@ const PhoneDetails = () => {
   }, [slug]);
 
   // -------------------------
+  // DEFAULT VARIANT
+  // -------------------------
+  useEffect(() => {
+    if (phone?.variants?.length) {
+      setSelectedVariant(phone.variants[0]);
+    }
+  }, [phone]);
+
+  // discount calculation
+  const discount = phone
+    ? ((phone.price - phone.discountPrice) / phone.price) * 100
+    : 0;
+  // -------------------------
+  // ADD TO CART
+  // -------------------------
+  const handleAddToCart = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    const cartData = {
+      productId: phone._id,
+      name: phone.name,
+      brand: phone.brand,
+      image: phone.image,
+      price: phone.price,
+      discountPrice: selectedVariant?.price || phone.discountPrice,
+      quantity,
+      userEmail: user.email,
+    };
+
+    try {
+      const res = await axios.post("http://localhost:5000/cart", cartData);
+
+      if (res.data.success) {
+        refetch();
+
+        toast.success(`${phone.name} added to cart 🛒`);
+      }
+    } catch (error) {
+      toast.error("Failed to add product", error);
+    }
+  };
+
+  // -------------------------
+  // BUY NOW
+  // -------------------------
+  const handleBuyNow = async () => {
+    await handleAddToCart();
+    navigate("/checkout");
+  };
+
+  // -------------------------
   // LOADING
   // -------------------------
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
+      <div className="p-6 max-w-6xl mx-auto">
+        <div className="skeleton h-96 w-full"></div>
       </div>
     );
   }
@@ -67,203 +130,196 @@ const PhoneDetails = () => {
     return (
       <div className="text-center py-20">
         <h2 className="text-3xl font-bold">Product Not Found</h2>
-        <Link to="/" className="btn btn-primary mt-5">
+        <Link to="/" className="btn btn-primary mt-6">
           Back Home
         </Link>
       </div>
     );
   }
 
-  const discount = ((phone.price - phone.discountPrice) / phone.price) * 100;
-  // PhoneDetails.jsx (PART 2)
-
   return (
-    <section className="bg-base-200 min-h-screen py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        {/* TOP NAV ACTIONS */}
-        <div className="flex flex-wrap gap-3 mb-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="btn btn-outline btn-sm"
-          >
-            <FaArrowLeft /> Back
-          </button>
+    <section className="max-w-7xl mx-auto px-4 py-6">
+      {/* TOP NAV */}
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mb-6">
+        <button onClick={() => navigate(-1)} className="btn btn-outline">
+          <FaArrowLeft /> Back
+        </button>
 
-          <Link to="/all-brands" className="btn btn-primary btn-sm">
-            <FaThLarge /> Browse All Phones
-          </Link>
+        <Link to="/all-brands" className="btn btn-primary">
+          <FaThLarge /> Browse All Phones
+        </Link>
+      </div>
+
+      {/* MAIN GRID */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-base-100 p-4 sm:p-6 rounded-2xl shadow-xl"
+      >
+        {/* IMAGE */}
+        <div className="flex justify-center items-center border rounded-xl p-4">
+          <img
+            src={phone.image}
+            alt={phone.name}
+            className="w-full max-h-[400px] object-contain"
+          />
         </div>
 
-        {/* MAIN PRODUCT CARD */}
-        <div className="grid lg:grid-cols-2 gap-10 bg-base-100 p-6 rounded-2xl shadow-lg">
-          {/* IMAGE SECTION */}
-          <div className="space-y-4">
-            <div className="border rounded-xl p-4 bg-white">
-              <img
-                src={phone.image}
-                alt={phone.name}
-                className="w-full h-[420px] object-contain"
-              />
-            </div>
+        {/* INFO */}
+        <div>
+          <p className="text-primary font-semibold">{phone.brand}</p>
 
-            {/* GALLERY */}
-            <div className="grid grid-cols-4 gap-2">
-              {phone.gallery?.map((img, i) => (
-                <img
-                  key={i}
-                  src={img}
-                  className="h-20 object-cover rounded border hover:scale-105 transition"
-                />
-              ))}
-            </div>
+          <h1 className="text-2xl sm:text-4xl font-bold mt-2">{phone.name}</h1>
+
+          <div className="flex items-center gap-2 mt-3 text-warning">
+            <FaStar />
+            <span>{phone.rating}</span>
+            <span className="text-gray-500">
+              ({phone.totalReviews} Reviews)
+            </span>
           </div>
 
-          {/* INFO SECTION */}
-          <div>
-            <p className="text-primary font-semibold">{phone.brand}</p>
-            <h1 className="text-3xl lg:text-4xl font-bold mt-2">
-              {phone.name}
-            </h1>
-            {/* RATING */}
-            <div className="flex items-center gap-2 mt-3 text-warning">
-              <FaStar />
-              <span className="font-semibold">{phone.rating}</span>
-              <span className="text-gray-500">
-                ({phone.totalReviews} reviews)
-              </span>
-            </div>
-            <p className="text-gray-500 mt-1">Sold: {phone.sold} units</p>
-            {/* PRICE */}
-            <div className="flex items-center gap-4 mt-6">
-              <span className="text-4xl font-bold text-primary">
-                ${phone.discountPrice}
-              </span>
+          {/* PRICE */}
+          <div className="flex flex-wrap gap-3 mt-6 items-center">
+            <span className="text-3xl font-bold text-primary">
+              ৳{selectedVariant?.price || phone.discountPrice}
+            </span>
 
-              <span className="line-through text-gray-400">${phone.price}</span>
+            <span className="line-through text-gray-400">৳{phone.price}</span>
 
-              <span className="badge badge-error">
-                -{Math.round(discount)}%
-              </span>
-            </div>
-            {/* DESCRIPTION */}
-            <p className="mt-5 text-gray-600 leading-7">{phone.description}</p>
-            {/* COLORS */}
-            <div className="mt-6">
-              <h3 className="font-bold mb-2">Colors</h3>
-
-              <div className="flex flex-wrap gap-2">
-                {phone.colors?.map((c, i) => (
-                  <span key={i} className="badge badge-outline">
-                    {c}
-                  </span>
-                ))}
-              </div>
-            </div>
-            {/* VARIANTS */}
-            <div className="mt-6">
-              <h3 className="font-bold mb-2">Variants</h3>
-
-              <div className="grid grid-cols-2 gap-3">
-                {phone.variants?.map((v, i) => (
-                  <div
-                    key={i}
-                    onClick={() => setSelectedVariant(v)}
-                    className={`p-3 border rounded-xl cursor-pointer transition ${
-                      selectedVariant?.ram === v.ram
-                        ? "border-primary bg-base-200"
-                        : ""
-                    }`}
-                  >
-                    <p className="font-semibold">{v.ram}</p>
-                    <p>{v.storage}</p>
-                    <p className="text-primary font-bold">${v.price}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            // PhoneDetails.jsx (PART 3)
-            {/* QUANTITY */}
-            <div className="flex items-center gap-4 mt-6">
-              <button
-                onClick={() => quantity > 1 && setQuantity(quantity - 1)}
-                className="btn btn-outline"
-              >
-                <FaMinus />
-              </button>
-
-              <span className="text-xl font-bold">{quantity}</span>
-
-              <button
-                onClick={() => setQuantity(quantity + 1)}
-                className="btn btn-outline"
-              >
-                <FaPlus />
-              </button>
-            </div>
-            {/* ACTION BUTTONS */}
-            <div className="grid md:grid-cols-2 gap-4 mt-8">
-              <button className="btn btn-primary">
-                <FaShoppingCart />
-                Add To Cart
-              </button>
-
-              <button className="btn btn-error">
-                <FaBolt />
-                Buy Now
-              </button>
-            </div>
+            <span className="badge badge-error">-{Math.round(discount)}%</span>
           </div>
-        </div>
 
-        {/* SPECIFICATIONS */}
-        <div className="bg-base-100 p-6 mt-10 rounded-2xl shadow">
-          <h2 className="text-2xl font-bold mb-5">Specifications</h2>
+          <p className="mt-4 text-gray-600">{phone.description}</p>
 
-          <table className="table w-full">
-            <tbody>
-              {Object.entries(phone.specifications || {}).map(([k, v]) => (
-                <tr key={k}>
-                  <td className="font-semibold capitalize">{k}</td>
-                  <td>{v}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* RELATED PRODUCTS */}
-        <div className="mt-14">
-          <h2 className="text-2xl font-bold mb-6">Related Products</h2>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {related?.map((item) => (
+          {/* VARIANTS */}
+          <div className="grid grid-cols-2 gap-3 mt-6">
+            {phone.variants?.map((variant, index) => (
               <div
-                key={item._id}
-                className="card bg-base-100 border hover:shadow-lg transition"
+                key={index}
+                onClick={() => setSelectedVariant(variant)}
+                className={`border rounded-xl p-3 cursor-pointer transition ${
+                  selectedVariant?.ram === variant.ram
+                    ? "border-primary bg-base-200"
+                    : ""
+                }`}
               >
-                <img src={item.image} className="h-40 object-contain p-3" />
-
-                <div className="p-3">
-                  <h3 className="text-sm font-bold line-clamp-2">
-                    {item.name}
-                  </h3>
-
-                  <p className="text-primary font-bold">
-                    ${item.discountPrice}
-                  </p>
-
-                  <Link
-                    to={`/phone/${item.slug}`}
-                    className="btn btn-primary btn-sm w-full mt-2"
-                  >
-                    View
-                  </Link>
-                </div>
+                <p className="font-semibold">{variant.ram}</p>
+                <p className="text-sm">{variant.storage}</p>
+                <p className="text-primary font-bold">৳{variant.price}</p>
               </div>
             ))}
           </div>
+
+          {/* QUANTITY */}
+          <div className="flex items-center gap-4 mt-6">
+            <button
+              className="btn btn-outline"
+              onClick={() => quantity > 1 && setQuantity(quantity - 1)}
+            >
+              <FaMinus />
+            </button>
+
+            <span className="text-xl font-bold">{quantity}</span>
+
+            <button
+              className="btn btn-outline"
+              onClick={() => setQuantity(quantity + 1)}
+            >
+              <FaPlus />
+            </button>
+          </div>
+
+          {/* BUTTONS */}
+          <div className="grid sm:grid-cols-2 gap-4 mt-6">
+            <button onClick={handleAddToCart} className="btn btn-primary">
+              <FaShoppingCart /> Add To Cart
+            </button>
+
+            <button onClick={handleBuyNow} className="btn btn-error">
+              <FaBolt /> Buy Now
+            </button>
+          </div>
+          {/* SPECIFICATIONS */}
+          {phone.specifications && (
+            <div className="mt-8">
+              <h2 className="text-xl font-bold mb-3">Specifications</h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {Object.entries(phone.specifications).map(
+                  ([key, value], index) => (
+                    <div key={index} className="border rounded-lg p-3">
+                      <p className="text-gray-500 text-sm">{key}</p>
+                      <p className="font-semibold">{value}</p>
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {/* RELATED PRODUCTS */}
+      <div className="mt-14">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-6">
+          Related Products
+        </h2>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {related.map((item) => (
+            <div
+              key={item._id}
+              className="card border hover:shadow-xl transition"
+            >
+              <img
+                src={item.image}
+                alt={item.name}
+                className="h-40 object-contain p-3"
+              />
+
+              <div className="card-body">
+                <h2 className="font-bold line-clamp-2">{item.name}</h2>
+
+                <p className="text-primary font-bold">৳{item.discountPrice}</p>
+
+                <Link
+                  to={`/phone/${item.slug}`}
+                  className="btn btn-primary btn-sm"
+                >
+                  View Details
+                </Link>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
+      <Toaster
+        position="top-right"
+        gutter={12}
+        containerStyle={{
+          top: 20,
+          right: 20,
+        }}
+        toastOptions={{
+          duration: 3000,
+          success: {
+            style: {
+              background: "#10B981",
+              color: "#fff",
+              borderRadius: "14px",
+              fontWeight: "600",
+            },
+          },
+          error: {
+            style: {
+              background: "#EF4444",
+              color: "#fff",
+              borderRadius: "14px",
+            },
+          },
+        }}
+      />
     </section>
   );
 };

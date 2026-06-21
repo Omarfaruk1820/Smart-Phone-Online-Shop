@@ -255,6 +255,20 @@ const DashboardSidebar = ({ closeDrawer }) => {
                   My Profile
                 </NavLink>
               </li>
+              <li>
+                <NavLink
+                  to="/dashboard/orders-detail"
+                  onClick={() => {
+                    if (window.innerWidth < 1024) closeDrawer?.();
+                  }}
+                  className={({ isActive }) =>
+                    isActive ? activeClass : normalClass
+                  }
+                >
+                  <FaUserCircle />
+                  Order Details
+                </NavLink>
+              </li>
             </>
           )}
 
