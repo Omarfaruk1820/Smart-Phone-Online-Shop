@@ -45,7 +45,7 @@ const AllBrands = () => {
 
     queryFn: async () => {
       const res = await axios.get(
-        `http://localhost:5000/phones?page=${currentPage}&limit=${limit}`,
+        `https://smart-phone-online-shop-by-node.vercel.app/phones?page=${currentPage}&limit=${limit}`,
       );
 
       return res.data;
@@ -114,7 +114,7 @@ const AllBrands = () => {
     };
 
     try {
-      await axios.post("http://localhost:5000/cart", cartData);
+      await axios.post("https://smart-phone-online-shop-by-node.vercel.app/cart", cartData);
 
       await refetch();
 

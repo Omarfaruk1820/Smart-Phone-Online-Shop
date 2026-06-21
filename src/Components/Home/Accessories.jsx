@@ -39,7 +39,7 @@ const Accessories = () => {
         setLoading(true);
 
         const res = await axios.get(
-          `http://localhost:5000/accessories?page=${currentPage}&limit=${ITEMS_PER_PAGE}`,
+          `https://smart-phone-online-shop-by-node.vercel.app/accessories?page=${currentPage}&limit=${ITEMS_PER_PAGE}`,
         );
 
         setProducts(res.data.accessories || []);
@@ -83,7 +83,7 @@ const Accessories = () => {
     };
 
     try {
-      const res = await axios.post("http://localhost:5000/cart", cartItem);
+      const res = await axios.post("https://smart-phone-online-shop-by-node.vercel.app/cart", cartItem);
 
       if (res.data.success) {
         refetch();

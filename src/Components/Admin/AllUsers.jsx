@@ -13,7 +13,7 @@ const AllUsers = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  const API_URL = "http://localhost:5000/users";
+  const API_URL = "https://smart-phone-online-shop-by-node.vercel.app/users";
 
   // =========================
   // FETCH USERS

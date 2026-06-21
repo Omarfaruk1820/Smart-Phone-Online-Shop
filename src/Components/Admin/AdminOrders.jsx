@@ -6,7 +6,7 @@ const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
 
   const fetchOrders = async () => {
-    const res = await axios.get("http://localhost:5000/orders");
+    const res = await axios.get("https://smart-phone-online-shop-by-node.vercel.app/orders");
     setOrders(res.data || []);
   };
 
@@ -16,7 +16,7 @@ const AdminOrders = () => {
 
   const updateStatus = async (id, status) => {
     try {
-      await axios.patch(`http://localhost:5000/orders/status/${id}`, {
+      await axios.patch(`https://smart-phone-online-shop-by-node.vercel.app/orders/status/${id}`, {
         status,
       });
 
@@ -28,7 +28,7 @@ const AdminOrders = () => {
   };
 
   const deleteOrder = async (id) => {
-    await axios.delete(`http://localhost:5000/orders/${id}`);
+    await axios.delete(`https://smart-phone-online-shop-by-node.vercel.app/orders/${id}`);
     toast.success("Order deleted");
     fetchOrders();
   };

@@ -36,7 +36,7 @@ const AccessoriesDetails = () => {
         setLoading(true);
 
         const res = await axios.get(
-          `http://localhost:5000/accessories/slug/${slug}`,
+          `https://smart-phone-online-shop-by-node.vercel.app/accessories/slug/${slug}`,
         );
 
         setProduct(res.data.accessory);
@@ -76,7 +76,7 @@ const AccessoriesDetails = () => {
     };
 
     try {
-      const res = await axios.post("http://localhost:5000/cart", cartItem);
+      const res = await axios.post("https://smart-phone-online-shop-by-node.vercel.app/cart", cartItem);
 
       if (res.data.success) {
         refetch();

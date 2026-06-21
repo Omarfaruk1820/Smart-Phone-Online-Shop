@@ -75,7 +75,7 @@ const AddToCart = () => {
   // =========================
   const increaseMutation = useMutation({
     mutationFn: (id) =>
-      axios.patch(`http://localhost:5000/cart/increase/${id}`),
+      axios.patch(`https://smart-phone-online-shop-by-node.vercel.app/cart/increase/${id}`),
 
     onSuccess: () => {
       refetch();
@@ -93,7 +93,7 @@ const AddToCart = () => {
   // =========================
   const decreaseMutation = useMutation({
     mutationFn: (id) =>
-      axios.patch(`http://localhost:5000/cart/decrease/${id}`),
+      axios.patch(`https://smart-phone-online-shop-by-node.vercel.app/cart/decrease/${id}`),
 
     onSuccess: () => {
       refetch();
@@ -108,7 +108,7 @@ const AddToCart = () => {
   // Delete Product Mutation
   // =========================
   const deleteMutation = useMutation({
-    mutationFn: (id) => axios.delete(`http://localhost:5000/cart/${id}`),
+    mutationFn: (id) => axios.delete(`https://smart-phone-online-shop-by-node.vercel.app/cart/${id}`),
 
     onSuccess: () => {
       refetch();
@@ -126,7 +126,7 @@ const AddToCart = () => {
   // =========================
   const clearCartMutation = useMutation({
     mutationFn: () =>
-      axios.delete(`http://localhost:5000/cart/clear/${user.email}`),
+      axios.delete(`https://smart-phone-online-shop-by-node.vercel.app/cart/clear/${user.email}`),
 
     onSuccess: () => {
       refetch();
@@ -143,7 +143,7 @@ const AddToCart = () => {
   // =========================
   useEffect(() => {
     axios
-      .get("http://localhost:5000/phones")
+      .get("https://smart-phone-online-shop-by-node.vercel.app/phones")
       .then((res) => {
         setRecommendedProducts(res.data?.phones?.slice(0, 4) || []);
       })

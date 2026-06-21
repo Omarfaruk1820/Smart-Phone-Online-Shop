@@ -13,7 +13,7 @@ import auth from "./firebase.config";
 
 export const AuthContext = createContext(null);
 
-const API_URL = "http://localhost:5000/users";
+const API_URL = "https://smart-phone-online-shop-by-node.vercel.app/users";
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -26,7 +26,7 @@ const AuthProvider = ({ children }) => {
   const fetchUserRole = async (email) => {
     try {
       const res = await axios.get(
-        `http://localhost:5000/users/role/${encodeURIComponent(email)}`,
+        `https://smart-phone-online-shop-by-node.vercel.app/users/role/${encodeURIComponent(email)}`,
       );
       setRole(res.data.role || "user");
     } catch {

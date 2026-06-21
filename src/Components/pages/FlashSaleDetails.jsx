@@ -37,7 +37,7 @@ const FlashSaleDetails = () => {
         setLoading(true);
 
         const res = await axios.get(
-          `http://localhost:5000/phones/flash-sale/${id}`,
+          `https://smart-phone-online-shop-by-node.vercel.app/phones/flash-sale/${id}`,
         );
 
         setProduct(res.data.product);
@@ -74,7 +74,7 @@ const FlashSaleDetails = () => {
     };
 
     try {
-      const res = await axios.post("http://localhost:5000/cart", cartItem);
+      const res = await axios.post("https://smart-phone-online-shop-by-node.vercel.app/cart", cartItem);
 
       if (res.data.success) {
         refetch();

@@ -23,7 +23,7 @@ const OrderDetails = () => {
         setLoading(true);
 
         const res = await axios.get(
-          `http://localhost:5000/orders/detail/${id}`,
+          `https://smart-phone-online-shop-by-node.vercel.app/orders/detail/${id}`,
         );
 
         setOrder(res.data);
@@ -44,7 +44,7 @@ const OrderDetails = () => {
     try {
       setInvoiceLoading(true);
 
-      window.open(`http://localhost:5000/orders/invoice/${orderId}`, "_blank");
+      window.open(`https://smart-phone-online-shop-by-node.vercel.app/orders/invoice/${orderId}`, "_blank");
     } finally {
       setInvoiceLoading(false);
     }

@@ -22,7 +22,7 @@ const MyOrders = () => {
         setLoading(true);
 
         const res = await axios.get(
-          `http://localhost:5000/orders/${user.email}`,
+          `https://smart-phone-online-shop-by-node.vercel.app/orders/${user.email}`,
         );
 
         setOrders(res.data || []);
@@ -43,7 +43,7 @@ const MyOrders = () => {
   // DOWNLOAD PDF
   // ==========================
   const downloadInvoice = (orderId) => {
-    window.open(`http://localhost:5000/orders/invoice/${orderId}`, "_blank");
+    window.open(`https://smart-phone-online-shop-by-node.vercel.app/orders/invoice/${orderId}`, "_blank");
   };
 
   // ==========================

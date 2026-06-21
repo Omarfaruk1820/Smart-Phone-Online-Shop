@@ -153,10 +153,10 @@ const AddProduct = () => {
 
     try {
       if (type === "phone") {
-        await axios.post("http://localhost:5000/api/phones", form);
+        await axios.post("https://smart-phone-online-shop-by-node.vercel.app/api/phones", form);
         alert("Phone Added!");
       } else {
-        await axios.post("http://localhost:5000/api/accessories", form);
+        await axios.post("https://smart-phone-online-shop-by-node.vercel.app/api/accessories", form);
         alert("Accessory Added!");
       }
 

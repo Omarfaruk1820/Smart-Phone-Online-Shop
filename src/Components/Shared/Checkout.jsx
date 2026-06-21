@@ -33,7 +33,7 @@ const Checkout = () => {
         setLoading(true);
 
         const res = await axios.get(
-          `http://localhost:5000/cart/${user.email}`
+          `https://smart-phone-online-shop-by-node.vercel.app/cart/${user.email}`
         );
 
         setCart(res.data || []);
@@ -70,7 +70,7 @@ const Checkout = () => {
   // ======================
   const handleRemove = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/cart/${id}`);
+      await axios.delete(`https://smart-phone-online-shop-by-node.vercel.app/cart/${id}`);
 
       setCart((prev) => prev.filter((item) => item._id !== id));
 
@@ -109,7 +109,7 @@ const Checkout = () => {
     };
 
     try {
-      const res = await axios.post("http://localhost:5000/orders", order);
+      const res = await axios.post("https://smart-phone-online-shop-by-node.vercel.app/orders", order);
 
       if (res.data.success) {
         toast.success("Order placed successfully 🎉", {
